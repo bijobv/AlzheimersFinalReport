@@ -12,11 +12,37 @@ editor: visual
 ```{r echo=FALSE}
 if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman"); library(pacman)
 pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix)
+
+#alzdata <- readRDS("alzdata.RDS")
+alzdata <- readRDS("knnalzdata.RDS")
 ```
 
-```{r readingdata, message=FALSE}
+```{r train}
+set.seed(5003)
+train_index <- createDataPartition(alzdata$Diagnosis, p = 0.7, list = FALSE)
+train_data <- alzdata[train_index, ]
+test_data <- alzdata[-train_index, ]
 
-fulldata <- rea
+modelcv <- trainControl(
+  method = "repeatedcv",
+  number = 10,
+  repeats = 10,
+  search = "grid", 
+  classProbs = TRUE,
+  summaryFunction = prSummary, 
+  savePredictions = "all",
+)
+#model example for knn
+###set.seed(5003)
+###knn_model <- train(
+ ### Diagnosis ~ .,
+ ###data = train_data,
+ ### method = "knn",
+  #tuneLength = 30,
+ ###trControl = modelcv,
+ ### preProcess = c("center", "scale"),
+ #metric = "AUC"
+
 ```
 
 ### Overview of the problem
