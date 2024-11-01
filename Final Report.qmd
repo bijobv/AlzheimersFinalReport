@@ -9,4 +9,37 @@ format:
 editor: visual
 ---
 
-## Overview of the Problem
+``` {r libraries}
+library(tidyverse)
+library(caret)
+library(ranger)
+library(tree)
+library(glmnet)
+library(ISLR)
+library(Matrix)
+library(ggplot2)
+```
+
+
+```{r readingdata, message=FALSE}
+
+fulldata <- read
+```
+
+
+
+### Overview of the problem
+
+### Dataset Description
+
+### Initial Data Analysis / Visualisation of the data
+
+### Feature Engineering
+
+### Classification Algorithms used
+
+### Classification Performance Evaluation
+
+### Conclusion
+
+
