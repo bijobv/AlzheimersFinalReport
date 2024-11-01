@@ -1,0 +1,74 @@
+---
+title: "Final Report"
+author: "Bijo Varghese, Hong Fu, Jessica Kentwell"
+date: "`r format(Sys.Date(), '%B %d, %Y')`" # current date using r 
+format:
+    html:
+        embed-resources: true
+        page-layout: full
+editor: visual
+---
+
+```{r echo=FALSE}
+if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman"); library(pacman)
+pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix)
+
+#alzdata <- readRDS("alzdata.RDS")
+alzdata <- readRDS("knnalzdata.RDS")
+```
+
+```{r train}
+set.seed(5003)
+train_index <- createDataPartition(alzdata$Diagnosis, p = 0.7, list = FALSE)
+train_data <- alzdata[train_index, ]
+test_data <- alzdata[-train_index, ]
+
+modelcv <- trainControl(
+  method = "repeatedcv",
+  number = 10,
+  repeats = 10,
+  search = "grid", 
+  classProbs = TRUE,
+  summaryFunction = prSummary, 
+  savePredictions = "all",
+)
+#model example for knn
+###set.seed(5003)
+###knn_model <- train(
+ ### Diagnosis ~ .,
+ ###data = train_data,
+ ### method = "knn",
+  #tuneLength = 30,
+ ###trControl = modelcv,
+ ### preProcess = c("center", "scale"),
+ #metric = "AUC"
+
+```
+
+```{r}
+#regular
+#knn_predictions <- predict(knn_model, newdata = test_data)
+#knn_CM <- confusionMatrix(knn_predictions, test_data$Diagnosis, positive = "Alzheimers")
+#print(knn_CM)
+
+#with adjusted probabilities
+#knn_probs <- predict(knn_model, newdata = test_data, type = "prob")
+#knn_predictions_2 <- ifelse(knn_probs[, "Alzheimers"] > 0.35, "Alzheimers", "No_Alzheimers")
+#knn_predictions_2 <- factor(knn_predictions_2, levels = c("No_Alzheimers", "Alzheimers"))
+#knn_CM_2 <- confusionMatrix(knn_predictions_2, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
+#print(knn_CM_2)
+```
+
+### Overview of the problem
+
+### Dataset Description
+
+### Initial Data Analysis / Visualisation of the data
+
+### Feature Engineering
+
+### Classification Algorithms used
+
+### Classification Performance Evaluation
+
+### Conclusion
