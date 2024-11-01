@@ -45,6 +45,20 @@ modelcv <- trainControl(
 
 ```
 
+```{r}
+#regular
+#knn_predictions <- predict(knn_model, newdata = test_data)
+#knn_CM <- confusionMatrix(knn_predictions, test_data$Diagnosis, positive = "Alzheimers")
+#print(knn_CM)
+
+#with adjusted probabilities
+#knn_probs <- predict(knn_model, newdata = test_data, type = "prob")
+#knn_predictions_2 <- ifelse(knn_probs[, "Alzheimers"] > 0.35, "Alzheimers", "No_Alzheimers")
+#knn_predictions_2 <- factor(knn_predictions_2, levels = c("No_Alzheimers", "Alzheimers"))
+#knn_CM_2 <- confusionMatrix(knn_predictions_2, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
+#print(knn_CM_2)
+```
+
 ### Overview of the problem
 
 ### Dataset Description
