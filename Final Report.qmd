@@ -1,0 +1,205 @@
+---
+title: "Project Plan and EDA"
+author: "Bijo Varghese, Hong Fu, Jessica Kentwell"
+date: "`r format(Sys.Date(), '%B %d, %Y')`" # current date using r 
+format:
+    html:
+        embed-resources: true
+        page-layout: full
+editor: visual
+---
+
+```{r readingCSV, echo=FALSE}
+fulldata <- read.csv("alzheimers_disease_data.csv")
+fulldata$Diagnosis <- factor(fulldata$Diagnosis, levels = c(0, 1), labels = c("No", "Yes"))
+fulldata <- subset(fulldata, select = -c(PatientID, DoctorInCharge))
+```
+
+```{r setup, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+# load or install required packages using pacman
+if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman")
+pacman::p_load(tidyverse, reshape2, knitr, RColorBrewer, psych, caret, class, randomForest, ranger, corrplot, data.table, DescTools, ggcorrplot, kable, insight, latticeExtra, lmtest, glmnet, psychTools, purrr, rmarkdown, styler, tidygraph, tidymodels, modelenv, parsnip, vcd, xgboost, lattice, plotly, GGally, cowplot, Hmisc, correlation, PRROC, MLMetrics, heatmaply)
+```
+
+```{r variables, echo=FALSE}
+alzdata <- readRDS("alzdata.RDS")
+
+# create values by variable type
+# target variable
+target_var <- "Diagnosis"
+
+# numeric/continuous variables
+numeric_vars <- names(alzdata)[sapply(alzdata, is.numeric)]
+
+# binary variables (factor with 2 levels)
+binary_vars <- names(alzdata)[sapply(alzdata, function(x) is.factor(x) && length(levels(x)) == 2)]
+binary_vars <- setdiff(binary_vars, target_var)
+
+# multi categorical variables (> 2 levels)
+multicat_vars <- names(alzdata)[sapply(alzdata, function(x) is.factor(x) && length(levels(x)) > 2)]
+
+# all categorical vars (excluding target_var)
+all_catvars <- c(binary_vars, multicat_vars)
+
+# all predictor variables (excluding target_var)
+predictor_vars <- setdiff(names(alzdata), target_var)
+
+# function to subset data on variable groupings
+subset_data <- function(data, vars) {
+  return(data[, vars])
+}
+
+numeric_data <- subset_data(alzdata, numeric_vars)
+binary_data <- subset_data(alzdata, binary_vars)
+multicat_data <- subset_data(alzdata, multicat_vars)
+```
+
+## Overview of the Problem
+
+In our project, using anonymised patient history and assessments, we intend to create a right sized model with adequate performance to diagnose if the patient has Alzheimer's or not - binary classification. According to Alzheimer's association, 1 in 3 older adult dies with Alzheimer's or another form of dementia (Alzheimer's association, 2024). These statistics suggest that we have or will encounter people in our lives who suffer from some form of dementia. To date, the exact cause of Alzheimer's is not fully understood, but researchers have identified that vascular, genetics, and lifestyle & environmental factors contribute to its development. Therefore, early detection is critical to treat or prevent Alzheimer's. The ability to identify, detect and prevent, is crucial to sustain growing aging population in our societies. We believe our model can be the foundation to help people with early detection and intervention, and for governments to reduce the cost burden on Medicare.
+
+## Alzheimer's Disease Dataset
+
+There are **`r nrow(fulldata)`** observations and **`r ncol(fulldata)`** variables in this dataset, of which **`r (ncol(fulldata)-1)`** are independent variables and **'1'** is the target variable. The table below provides a breakdown of sample of these variables.
+
+```{r, data_description, fold: true, echo=FALSE, message=FALSE}
+
+# Load required libraries
+library(readr)   # To read CSV files
+library(knitr)   # To format tables in a nice layout
+library(kableExtra)
+
+# Read the CSV file into a dataframe
+data <- read_csv("dataset_description.csv", show_col_types = FALSE)
+
+kable(data, format = "html") %>%
+  kable_styling() %>%
+  column_spec(1:ncol(data), extra_css = "font-size: 11px;") %>%  # Font size for table body
+  row_spec(0, extra_css = "font-size: 11px;")  # Font size for headers (row 0)
+```
+
+<br>
+
+::: {layout-ncol="2"}
+##### Figure 1. Percentage of frequencies in each class
+
+```{r echo = FALSE, fig.height=4, fig.width=4}
+library(lattice)
+diagnosis_counts <- table(alzdata$Diagnosis)
+diagnosis_proportions <- prop.table(diagnosis_counts)
+
+par(mai = c(1, 1, 0.5, 0.2))
+imbalance_barplot <- barplot(diagnosis_proportions * 100,
+  col = RColorBrewer::brewer.pal(3, "Set2"),
+  ylab = "Percentage",
+  ylim = c(0, 100),
+  border = NA,
+  cex.names = 1,
+  cex.axis = 1,
+  cex.lab = 1,
+  width = 0.5,
+  space = 0.1,
+  names.arg = c("No Alzheimers", "Alzheimer's")
+)
+
+abline(h = 0, col = "black", lwd = 1)
+```
+
+##### Figure 2. Correlation heatmap of numeric predictor variables
+
+```{r echo=FALSE, fig.height=4.5, fig.width=5}
+library(psych)
+library(corrplot)
+
+cor_results <- corr.test(alzdata[, numeric_vars], method = "pearson")
+
+# cor matrix
+numeric_cor_matrix <- cor_results$r
+
+# p value matrix
+numeric_p_matrix <- cor_results$p
+
+# print(dim(numeric_cor_matrix))
+# print(dim(numeric_p_matrix))
+
+par(mai = c(1, 1, 0, 1))
+
+# heatmap
+
+corrheatmap <- corrplot(numeric_cor_matrix,
+  method = "color",
+  type = "lower",
+  tl.cex = 0.7,
+  tl.col = "black",
+  cl.cex = 0.7,
+  mar = c(0, 1, 2, 3),
+  p.mat = numeric_p_matrix,
+  sig.level = 0.05,
+  insig = "label_sig",
+  pch = 8,
+  pch.cex = 1
+)
+
+
+```
+:::
+
+[In **Figure 1**, `r round(prop.table(table(alzdata$Diagnosis))["No Alzheimer's"] * 100, 2)`% represents cases with 'No Alzheimer's' (negative class), and a `r round(prop.table(table(alzdata$Diagnosis))["Alzheimer's"] * 100, 2)`% with 'Alzheimer's' (positive class). This suggests that we have **moderate class imbalance** that should be addressed to prevent model bias towards the majority class. **Figure 2** shows very weak correlations between all of the numeric predictor variables.]{style="font-size: 12px;"}
+
+##### Figure 3. Numeric predictor variables by diagnosis
+
+```{r violinplot, echo=FALSE, error=FALSE, warning=FALSE, fig.height=3, fig.width=12}
+library(ggplot2)
+
+# long format
+numeric_vars_long <- reshape2::melt(alzdata, id.vars = "Diagnosis", measure.vars = numeric_vars)
+
+# violin plots for numeric variables by target_var
+ggviolin <- ggplot(numeric_vars_long, aes(x = Diagnosis, y = value, fill = Diagnosis)) +
+  geom_violin(trim = FALSE) +
+  facet_wrap(~variable, scales = "free", nrow = 2) +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set2") +
+  theme(
+    plot.title = element_text(hjust = 0, size = 8),
+    axis.title.y = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+  )
+
+print(ggviolin)
+
+# create plotly from ggplot object
+violin_plotly <- ggplotlyr(ggviolin)
+```
+
+[**Figure 3** illustrates the important features that can impact our classification model, such as MMSE and Functional Assessment.]{style="font-size: 12px;"}
+
+## Clear description of potential challenges
+
+1.  **Class imbalance:** The dataset is imbalanced and we have more observations on negative diagnosis than positive, that may introduce bias. To address the imbalance, we will use randomness and cross validation techniques.
+2.  **Feature selection:** To choose the adequate features out of the 33, we will deploy and test several feature selection techniques to find the right model size. But our group also has extensive medical data experience to test the statistical selections against intuition.
+3.  **Synthetic data:** The provenance of the data suggests it was generated synthetically. This means the model should be used cautiously in the real world, given the medical context.
+4.  **Limited observations:** The dataset is just sufficiently large to train and test our model. But it is not large enough to qualify for well-tested models in medical context. However, using the models suggested to address class imbalance, may also help us to address this constraint.
+
+## Performance metrics
+
+To measure our models' performance, we must consider the medical context and class imbalance. For our logistic regression model, predicted probability values can be converted into class predictions using a threshold of 0.5. By combining these with the actual values from the test data, we can create a confusion matrix to evaluate various metrics and compare them across models. The model with the highest *Sensitivity* score is particularly important, as it indicates the best performance in correctly classifying positive cases. This is crucial in Alzheimer's disease classification due to the serious implications of misclassifying a patient negatively.
+
+We will also consider other metrics for a comprehensive view of performance, especially given our imbalanced dataset. The *F-1 score* provides a balance between *Sensitivity* and *Precision* (positive predicted value) and is less sensitive to class imbalance than metrics like *Accuracy*.
+
+## Models Proposed
+
+We plan to create and compare multiple models based on performance and size.
+
+1.  **Lasso Logistic Regression:** For our binary classification problem, we will use Lasso with Logistic Regression as our base model. This approach will enable feature selection from 33 features, most of which are normally distributed, while fitting a Logistic Regression model. Lasso’s ability to shrink coefficients toward zero will help identify the best subset through cross-validation.
+2.  **Random Forest:** We will also test the Random Forest model on our dataset. To tackle class imbalance, synthetic data, and limited observations, we believe Random Forest will be effective. Although model performance will come from the forest, we will visualize a single tree for clarity, especially for medical practitioners and agencies wanting to understand our model's structure.
+3.  **k-fold kNN Cross-Validation:** Finally, we will deploy k-fold kNN Cross-Validation. Like Random Forest, it addresses class imbalance, synthetic data, and limited observations. Cross-validation will help us tune the k parameter in the kNN model for optimal performance
+
+## Proposed Plan
+
+```{r schedule, echo=FALSE}
+library(knitr)
+include_graphics("schedule.png")
+```
