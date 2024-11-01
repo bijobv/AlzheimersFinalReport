@@ -9,24 +9,15 @@ format:
 editor: visual
 ---
 
-``` {r libraries}
-library(tidyverse)
-library(caret)
-library(ranger)
-library(tree)
-library(glmnet)
-library(ISLR)
-library(Matrix)
-library(ggplot2)
+```{r echo=FALSE}
+if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman"); library(pacman)
+pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix)
 ```
-
 
 ```{r readingdata, message=FALSE}
 
-fulldata <- read
+fulldata <- rea
 ```
-
-
 
 ### Overview of the problem
 
@@ -41,5 +32,3 @@ fulldata <- read
 ### Classification Performance Evaluation
 
 ### Conclusion
-
-
