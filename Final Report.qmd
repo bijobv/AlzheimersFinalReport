@@ -45,13 +45,26 @@ modelcv <- trainControl(
 
 ```
 
-## Lasso Regression Model 
+## Lasso Regression Model
 
 ```{r, lasso}
 # lasso regression model requires caret and glmnet packages
 library(caret)
 library(glmnet)
 library(MLmetrics)
+library(dplyr)
+
+# scaling train_data and test_data for lasso as lasso is sensitive to unscaled data
+target <- train_data$Diagnosis
+predictors <- train_data %>% select(-Diagnosis)
+scaled_predictors <- as.data.frame(scale(predictors))
+train_data <- cbind(scaled_predictors, Diagnosis=target)
+# scaling test data 
+target <- test_data$Diagnosis
+predictors <- test_data %>% select(-Diagnosis)
+scaled_predictors <- as.data.frame(scale(predictors))
+test_data <- cbind(scaled_predictors, Diagnosis=target)
+
 
 # setup a range of lambda values 
 tune_grid <- expand.grid(alpha = 1, # alpha 1 denotes lasso regression model 
@@ -86,7 +99,6 @@ print(lasso_CM_2)
 
 
 ```
-
 
 ```{r}
 #regular
