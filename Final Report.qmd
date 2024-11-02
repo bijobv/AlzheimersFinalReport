@@ -13,7 +13,7 @@ editor: visual
 if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman"); library(pacman)
 pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix)
 
-#alzdata <- readRDS("alzdata.RDS")
+# read the cleaned Alzheimers dataset 
 alzdata <- readRDS("knnalzdata.RDS")
 ```
 
@@ -44,6 +44,49 @@ modelcv <- trainControl(
  #metric = "AUC"
 
 ```
+
+## Lasso Regression Model 
+
+```{r, lasso}
+# lasso regression model requires caret and glmnet packages
+library(caret)
+library(glmnet)
+library(MLmetrics)
+
+# setup a range of lambda values 
+tune_grid <- expand.grid(alpha = 1, # alpha 1 denotes lasso regression model 
+                         lambda = seq(0.001, 0.1, length = 10))
+
+# Train the model
+lasso_model <- train(
+  Diagnosis ~ ., 
+  data = train_data,
+  method = "glmnet",
+  tuneGrid = tune_grid,
+  trControl = modelcv,
+  )
+
+# print the best lambda value
+print(lasso_model$bestTune)
+
+```
+
+```{r, lasso_performance}
+## lasso confusion matrix 
+lasso_predictions <- predict(lasso_model, newdata = test_data)
+lasso_CM <- confusionMatrix(lasso_predictions, test_data$Diagnosis, positive = "Alzheimers")
+print(lasso_CM)
+
+#with adjusted probabilities
+lasso_probs <- predict(lasso_model, newdata = test_data, type = "prob")
+lasso_predictions_2 <- ifelse(lasso_probs[, "Alzheimers"] > 0.35, "Alzheimers", "No_Alzheimers")
+lasso_predictions_2 <- factor(lasso_predictions_2, levels = c("No_Alzheimers", "Alzheimers"))
+lasso_CM_2 <- confusionMatrix(lasso_predictions_2, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
+print(lasso_CM_2)
+
+
+```
+
 
 ```{r}
 #regular
