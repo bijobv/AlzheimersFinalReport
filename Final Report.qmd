@@ -147,6 +147,7 @@ rand.forest.function <- function(x) {
   data = train_data,
   method = "rf",
   trControl = modelcv,
+  tuneLength = 10
   tuneGrid = expand.grid(.mtry = sqrt(ncol(train_data) - 1)), 
   ntree = x
   )
@@ -204,40 +205,35 @@ kable(perf_measures_df, format = "html", digits = 2) %>%
   kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
-### Overview of the problem
+### Overview of the problem - Hong
 
-### Dataset Description
+### Dataset Description - Hong
 
-### Initial Data Analysis / Visualisation of the data
+### Initial Data Analysis / Visualisation of the data - Bijo
 
-### Feature Engineering
+### Feature Engineering - Jess
+- Dummy encoded multi-level categorical variables
+- No missing data
+- Kept all the key features given the medical nature of the problem
+- Scaled and centered the data, important especially for Lasso and kNN
+- Converted binary factors to numeric for kNN and Lasso
 
-### Classification Algorithms used
+### Classification Algorithms used - All
+- Repeat cross-validation
+  - Resamples - chose F1
+- Hyperparameter tuning per model (everyone to contribute)
+  - Final model specs:
+    - KNN best tuned k =
+    - RF best tuned mtry = and ntree =
+    - Lasso best tuned lambda = and alpha =
+    - LDA (no hyperparameter tuning).
 
-Repeat cross-validation
+### Classification Performance Evaluation - Jess
+- Sensitivity
+- Threshold adjustment
+- Confusion matrix heatmap for each model as well as metrics: Sensitivity and F1.
+- ROC curves for each model.
 
-Resamples - chose F1
-
-Hyperparameter tuning per model
-
-Final model specs:
-
-KNN best tuned k =
-
-RF best tuned mtry = and ntree =
-
-Lasso best tuned lambda = and alpha =
-
-LDA (no hyperparameter tuning).
-
-### Classification Performance Evaluation
-
-Threshold adjustment
-
-Confusion matrix heatmap for each model as well as metrics: Recall and F1.
-
-ROC curves for each model.
-
-### Conclusion
+### Conclusion - Bijo
 
 
