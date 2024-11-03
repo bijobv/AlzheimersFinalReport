@@ -9,19 +9,16 @@ format:
 editor: visual
 ---
 
-```{r setup echo=FALSE}
+```{r setup, echo=FALSE}
 if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman"); library(pacman)
-<<<<<<< HEAD
-pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, dplyr, knitr, kableExtra)
-=======
-pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, MASS, RColorBrewer, caTools)
->>>>>>> jess
+pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, dplyr, knitr, kableExtra, MASS, RColorBrewer, caTools, MLmetrics)
+
 
 # read the cleaned Alzheimers dataset 
 alzdata <- readRDS("knnalzdata.RDS")
 ```
 
-```{r train}
+```{r train, echo=FALSE, message=FALSE}
 set.seed(5003)
 train_index <- createDataPartition(alzdata$Diagnosis, p = 0.7, list = FALSE)
 train_data <- alzdata[train_index, ]
@@ -40,28 +37,10 @@ modelcv <- trainControl(
 
 ```
 
-<<<<<<< HEAD
+
 ## Lasso Regression Model
 
-```{r, lasso}
-# lasso regression model requires caret and glmnet packages
-library(caret)
-library(glmnet)
-library(MLmetrics)
-library(dplyr)
-
-# scaling train_data and test_data for lasso as lasso is sensitive to unscaled data
-target <- train_data$Diagnosis
-predictors <- train_data %>% select(-Diagnosis)
-scaled_predictors <- as.data.frame(scale(predictors))
-train_data <- cbind(scaled_predictors, Diagnosis=target)
-# scaling test data 
-target <- test_data$Diagnosis
-predictors <- test_data %>% select(-Diagnosis)
-scaled_predictors <- as.data.frame(scale(predictors))
-test_data <- cbind(scaled_predictors, Diagnosis=target)
-
-
+```{r lasso, echo=FALSE, message=FALSE}
 # setup a range of lambda values 
 tune_grid <- expand.grid(alpha = 1, # alpha 1 denotes lasso regression model 
                          lambda = seq(0.001, 0.1, length = 10))
@@ -73,6 +52,7 @@ lasso_model <- train(
   method = "glmnet",
   tuneGrid = tune_grid,
   trControl = modelcv,
+  preProcess = c("center", "scale")
   )
 
 # print the best lambda value
@@ -80,11 +60,7 @@ print(lasso_model$bestTune)
 
 ```
 
-```{r, lasso_performance}
-## lasso confusion matrix 
-lasso_predictions <- predict(lasso_model, newdata = test_data)
-lasso_CM <- confusionMatrix(lasso_predictions, test_data$Diagnosis, positive = "Alzheimers")
-print(lasso_CM)
+```{r lasso_performance, echo=FALSE, message=FALSE}
 
 #with adjusted probabilities
 lasso_probs <- predict(lasso_model, newdata = test_data, type = "prob")
@@ -96,13 +72,10 @@ print(lasso_CM_2)
 
 ```
 
-```{r}
-#regular
-#knn_predictions <- predict(knn_model, newdata = test_data)
-#knn_CM <- confusionMatrix(knn_predictions, test_data$Diagnosis, positive = "Alzheimers")
-#print(knn_CM)
-=======
-```{r knn, warning=TRUE}
+
+## kNN Model
+
+```{r knn, warning=TRUE, echo=FALSE, message=FALSE}
 #KNN model train
 set.seed(5003)
 knn_model <- train(
@@ -115,7 +88,16 @@ preProcess = c("center", "scale"),
 metric = "F"
 )
 ```
->>>>>>> jess
+
+```{r knn_predict_2, echo=FALSE, message=FALSE}
+knn_probs <- predict(knn_model, newdata = test_data, type = "prob")
+knn_preds_2 <- ifelse(knn_probs[, "Alzheimers"] > 0.35, "Alzheimers", "No_Alzheimers")
+knn_preds_2 <- factor(knn_preds_2, levels = c("No_Alzheimers", "Alzheimers"))
+knn_CM_2 <- confusionMatrix(knn_preds_2, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
+print(knn_CM_2)
+```
+
+## LDA Model 
 
 ```{r lda, warning=FALSE}
 #LDA model train
@@ -130,16 +112,7 @@ lda_model <- train(
 )
 ```
 
-```{r warning=FALSE}
-#testing rf
-set.seed(5003)
-rf_model <- train(Diagnosis ~ ., data = train_data, method = "rf", tuneLength = 10, trControl = modelcv, preProcess = c("center", "scale"), metric = "F")
-#testing lasso
-set.seed(5003)
-lasso_model <- train(Diagnosis ~ ., data = train_data, method = "glmnet", tuneLength = 10, trControl = modelcv,  preProcess = c("center", "scale"), metric = "F")
-```
-
-```{r resamples}
+```{r resamples, eval=FALSE}
 #this is just for cross validated data - now we can go back and choose the metric we want to use and keep it consistent. F1 i think is the best. 
 resamples_results <- resamples(list(KNN = knn_model, LDA = lda_model, RF = rf_model, Lasso = lasso_model))
 summary(resamples_results)
@@ -148,38 +121,7 @@ bwplot(resamples_results, metric = c("Recall", "F1", "AUC"))
 dotplot(resamples_results, metric = c("Recall", "F1", "AUC"))
 ```
 
-```{r tuning}
-print(lasso_model$bestTune)
-
-print(rf_model$bestTune)
-print(knn_model$bestTune)
-print(lda_model$bestTune)
-```
-
-```{r knn_predict}
-#without threshold adjustment
-knn_probs <- predict(knn_model, newdata = test_data, type = "prob")
-knn_preds <- predict(knn_model, newdata = test_data)
-knn_CM <- confusionMatrix(knn_preds, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
-print(knn_CM)
-```
-
-```{r knn_predict_2}
-knn_preds_2 <- ifelse(knn_probs[, "Alzheimers"] > 0.35, "Alzheimers", "No_Alzheimers")
-knn_preds_2 <- factor(knn_preds_2, levels = c("No_Alzheimers", "Alzheimers"))
-knn_CM_2 <- confusionMatrix(knn_preds_2, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
-print(knn_CM_2)
-```
-
-```{r lda_predict}
-#without threshold adjustment
-lda_probs <- predict(lda_model, newdata = test_data, type = "prob")
-lda_preds <- predict(lda_model, newdata = test_data)
-lda_CM <- confusionMatrix(lda_preds, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
-print(lda_CM)
-```
-
-```{r lda_predict_2}
+```{r lda_predict_2, echo=FALSE, message=FALSE}
 lda_prob_predictions <- predict(lda_model, newdata = test_data, type = "prob")
 #new threshold
 new_prob <- 0.35
@@ -251,7 +193,7 @@ ggplot(perf_measures_long, aes(x = factor(ntrees), y = Value, fill = Measure)) +
             vjust = -0.5, 
             size = 2.5) +
   labs(x = "Number of Trees", y = "Value") +
-  scale_fill_manual(values = c("#99A88C", "#335C67", "#E09F3E", "#E3DED1")) + 
+  scale_fill_manual(values = c("#E09F3E", "#335C67", "#99A88C", "#E3DED1")) + 
   theme_minimal()
 
 ```
@@ -298,14 +240,4 @@ ROC curves for each model.
 
 ### Conclusion
 
-```{r}
-colAUC(knn_preds, test_data$Diagnosis, plotROC = TRUE)
-```
 
-```{r}
-library(pROC)
-roc_knn <- roc(test_data$Diagnosis, knn_probs[, "Alzheimers"])
-plot(roc_knn, col="green", main="KNN ROC")
-roc_lda <- roc(test_data$Diagnosis, lda_probs[, "Alzheimers"])
-plot(roc_lda, col="blue", main="LDA ROC")
-```
