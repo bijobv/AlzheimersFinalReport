@@ -9,9 +9,9 @@ format:
 editor: visual
 ---
 
-```{r echo=FALSE}
+```{r setup echo=FALSE}
 if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman"); library(pacman)
-pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix)
+pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, MASS, RColorBrewer, )
 
 #alzdata <- readRDS("alzdata.RDS")
 alzdata <- readRDS("knnalzdata.RDS")
@@ -27,36 +27,66 @@ modelcv <- trainControl(
   method = "repeatedcv",
   number = 10,
   repeats = 10,
-  search = "grid", 
+  search = "random", #or grid
   classProbs = TRUE,
   summaryFunction = prSummary, 
-  savePredictions = "all",
+  savePredictions = "final",
 )
-#model example for knn
-###set.seed(5003)
-###knn_model <- train(
- ### Diagnosis ~ .,
- ###data = train_data,
- ### method = "knn",
-  #tuneLength = 30,
- ###trControl = modelcv,
- ### preProcess = c("center", "scale"),
- #metric = "AUC"
+
 
 ```
 
-```{r}
-#regular
-#knn_predictions <- predict(knn_model, newdata = test_data)
-#knn_CM <- confusionMatrix(knn_predictions, test_data$Diagnosis, positive = "Alzheimers")
-#print(knn_CM)
+```{r knn, warning=TRUE}
+#KNN model train
+set.seed(5003)
+knn_model <- train(
+Diagnosis ~ .,
+data = train_data,
+method = "knn",
+tuneLength = 10,
+trControl = modelcv,
+preProcess = c("center", "scale"),
+metric = "F"
+)
+```
 
-#with adjusted probabilities
-#knn_probs <- predict(knn_model, newdata = test_data, type = "prob")
-#knn_predictions_2 <- ifelse(knn_probs[, "Alzheimers"] > 0.35, "Alzheimers", "No_Alzheimers")
-#knn_predictions_2 <- factor(knn_predictions_2, levels = c("No_Alzheimers", "Alzheimers"))
-#knn_CM_2 <- confusionMatrix(knn_predictions_2, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
-#print(knn_CM_2)
+```{r lda, warning=FALSE}
+#LDA model train
+set.seed(5003)
+lda_model <- train(
+  Diagnosis ~ .,
+  data = train_data,
+  method = "lda",
+  trControl = modelcv,
+  preProcess = c("center", "scale"),
+  metric = "F"
+)
+```
+
+```{r warning=FALSE}
+#testing rf
+set.seed(5003)
+rf_model <- train(Diagnosis ~ ., data = train_data, method = "rf", tuneLength = 10, trControl = modelcv, preProcess = c("center", "scale"), metric = "F")
+#testing lasso
+set.seed(5003)
+lasso_model <- train(Diagnosis ~ ., data = train_data, method = "glmnet", tuneLength = 10, trControl = modelcv,  preProcess = c("center", "scale"), metric = "F")
+```
+
+```{r resamples}
+#this is just for cross validated data - now we can go back and choose the metric we want to use and keep it consistent. F1 i think is the best. 
+resamples_results <- resamples(list(KNN = knn_model, LDA = lda_model, RF = rf_model, Lasso = lasso_model))
+summary(resamples_results)
+
+bwplot(resamples_results, metric = c("Recall", "F1", "AUC"))
+dotplot(resamples_results, metric = c("Recall", "F1", "AUC"))
+```
+
+```{r tuning}
+print(lasso_model$bestTune)
+
+print(rf_model$bestTune)
+print(knn_model$bestTune)
+print(lda_model$bestTune)
 ```
 
 ### Overview of the problem
