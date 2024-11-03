@@ -11,7 +11,7 @@ editor: visual
 
 ```{r setup echo=FALSE}
 if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman"); library(pacman)
-pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, MASS, RColorBrewer, )
+pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, MASS, RColorBrewer, caTools)
 
 #alzdata <- readRDS("alzdata.RDS")
 alzdata <- readRDS("knnalzdata.RDS")
@@ -89,6 +89,39 @@ print(knn_model$bestTune)
 print(lda_model$bestTune)
 ```
 
+```{r knn_predict}
+#without threshold adjustment
+knn_probs <- predict(knn_model, newdata = test_data, type = "prob")
+knn_preds <- predict(knn_model, newdata = test_data)
+knn_CM <- confusionMatrix(knn_preds, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
+print(knn_CM)
+```
+
+```{r knn_predict_2}
+knn_preds_2 <- ifelse(knn_probs[, "Alzheimers"] > 0.35, "Alzheimers", "No_Alzheimers")
+knn_preds_2 <- factor(knn_preds_2, levels = c("No_Alzheimers", "Alzheimers"))
+knn_CM_2 <- confusionMatrix(knn_preds_2, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
+print(knn_CM_2)
+```
+
+```{r lda_predict}
+#without threshold adjustment
+lda_probs <- predict(lda_model, newdata = test_data, type = "prob")
+lda_preds <- predict(lda_model, newdata = test_data)
+lda_CM <- confusionMatrix(lda_preds, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
+print(lda_CM)
+```
+
+```{r lda_predict_2}
+lda_prob_predictions <- predict(lda_model, newdata = test_data, type = "prob")
+#new threshold
+new_prob <- 0.35
+lda_predictions_2 <- ifelse(lda_prob_predictions$Alzheimers >= new_prob, "Alzheimers", "No_Alzheimers")
+lda_predictions_2 <- factor(lda_predictions_2, levels = levels(test_data$Diagnosis))
+lda_CM_2 <- confusionMatrix(lda_predictions_2, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
+print(lda_CM_2)
+```
+
 ### Overview of the problem
 
 ### Dataset Description
@@ -126,9 +159,13 @@ ROC curves for each model.
 ### Conclusion
 
 ```{r}
+colAUC(knn_preds, test_data$Diagnosis, plotROC = TRUE)
+```
+
+```{r}
 library(pROC)
 roc_knn <- roc(test_data$Diagnosis, knn_probs[, "Alzheimers"])
-plot(roc_knn, col="green")
+plot(roc_knn, col="green", main="KNN ROC")
 roc_lda <- roc(test_data$Diagnosis, lda_probs[, "Alzheimers"])
-plot(lda_knn, col="blue")
+plot(roc_lda, col="blue", main="LDA ROC")
 ```
