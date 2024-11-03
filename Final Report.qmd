@@ -99,6 +99,36 @@ print(lda_model$bestTune)
 
 ### Classification Algorithms used
 
+Repeat cross-validation
+
+Resamples - chose F1
+
+Hyperparameter tuning per model
+
+Final model specs:
+
+KNN best tuned k =
+
+RF best tuned mtry = and ntree =
+
+Lasso best tuned lambda = and alpha =
+
+LDA (no hyperparameter tuning).
+
 ### Classification Performance Evaluation
 
+Threshold adjustment
+
+Confusion matrix heatmap for each model as well as metrics: Recall and F1.
+
+ROC curves for each model.
+
 ### Conclusion
+
+```{r}
+library(pROC)
+roc_knn <- roc(test_data$Diagnosis, knn_probs[, "Alzheimers"])
+plot(roc_knn, col="green")
+roc_lda <- roc(test_data$Diagnosis, lda_probs[, "Alzheimers"])
+plot(lda_knn, col="blue")
+```
