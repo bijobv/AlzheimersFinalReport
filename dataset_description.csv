@@ -1,0 +1,34 @@
+Variables,Description,Data Type
+Age,"Age of the patient, ranges from 60 to 90 years.",interval
+Gender,"Gender of the patients, 0: Male, 1: Female",nominal
+Ethnicity,"Ethnicity of the patients,  0: Caucasian, 1: African American, 2: Asian, 3: Other",nominal
+EducationLevel,"Education level of the patients, 0: None, 1: High School, 2: Bachelor's, 3: Higher",ordinal
+BMI,"BMI, ranging from 15 to 40",ratio
+Smoking,"Smoking status, 0: No, 1: Yes",nominal
+AlcoholConsumption,"Weekly alcohol consumption in units, ranging from 0 to 20",ratio
+PhysicalActivity,"Weekly physical activity in hours, ranging from 0 to 10",ratio
+DietQuality,"Diet quality score, ranging from 0 to 10",ratio
+SleepQuality,"Sleep quality score, ranging from 4 to 10",ratio
+FamilyHistoryAlzheimers,"Family history of Alzheimer's Disease, 0: No, 1: Yes",nominal
+CardiovascularDisease,"Presence of cardiovascular disease, 0: No, 1: Yes",nominal
+Diabetes,"Presence of diabetes, 0: No, 1: Yes",nominal
+Depression,"Presence of depression, 0: No, 1: Yes",nominal
+HeadInjury,"History of head injury, 0: No, 1: Yes",nominal
+Hypertension,"Presence of hypertension, 0: No, 1: Yes",nominal 
+SystolicBP,"Systolic blood pressure, ranging from 90 to 180 mmHg",interval
+DiastolicBP,"Diastolic blood pressure, ranging from 60 to 120 mmHg",interval
+CholesterolTotal,"Total cholesterol levels, ranging from 150 to 300 mg/dL",interval
+CholesterolLDL,"Low-density lipoprotein cholesterol levels, ranging from 50 to 200 mg/dL.",interval
+CholesterolHDL,"High-density lipoprotein cholesterol levels, ranging from 20 to 100 mg/dL.",interval
+CholesterolTriglyerides ,"Triglycerides levels, ranging from 50 to 400 mg/dL",interval
+MMSE,"Mini-Mental State Examination score, ranging from 0 to 30. Lower scores indicate cognitive impairment.",ordinal 
+FunctionalAssessment,"Functional assessment score, ranging from 0 to 10. Lower scores indicate greater impairment.",ordinal 
+MemoryComplaints,"Presence of memory complaints, 0: No, 1: Yes",nominal
+BehavioralProblems,"Presence of behavioral problems, 0: No, 1: Yes",nominal
+ADL,"Activities of Daily Living score, ranging from 0 to 10. Lower scores indicate greater impairment.",ordinal
+Confusion,"Presence of confusion, 0: No, 1: Yes",nominal
+Disorientation,"Presence of disorientation, 0: No, 1: Yes",nominal
+PersonalityChanges,"Presence of personality changes, 0: No, 1: Yes",nominal
+DifficultyCompletingTasks,"Presence of difficulty completing tasks, 0: No, 1: Yes",nominal
+Forgetfulness,"Presence of forgetfulness, 0: No, 1: Yes",nominal
+Diagnosis ,"Diagnosis status for Alzheimer's Disease, 0: No, 1: Yes",nominal
