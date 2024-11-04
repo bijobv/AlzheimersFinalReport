@@ -212,7 +212,7 @@ In our project, using anonymised patient history and assessments, we intend to c
 
 ## Alzheimer's Disease Dataset
 
-There are **`r nrow(alzdata)`** observations and **`r ncol(alzdata)`** variables in this dataset, of which **`r (ncol(alzdata)-1)`** are independent variables and **'1'** is the target variable. The table below provides a breakdown of sample of these variables.
+There are **`r nrow(alzdata)`** observations and **`r ncol(alzdata)`** variables in this dataset, of which **`r (ncol(alzdata)-1)`** are independent variables and **'1'** is the target variable. The table below provides a breakdown of these variables.
 
 ```{r, data_description, fold: true, echo=FALSE, message=FALSE}
 
