@@ -37,7 +37,6 @@ modelcv <- trainControl(
 
 ```
 
-
 ## Lasso Regression Model
 
 ```{r lasso, echo=FALSE, message=FALSE}
@@ -72,7 +71,6 @@ print(lasso_CM_2)
 
 ```
 
-
 ## kNN Model
 
 ```{r knn, warning=TRUE, echo=FALSE, message=FALSE}
@@ -97,7 +95,7 @@ knn_CM_2 <- confusionMatrix(knn_preds_2, test_data$Diagnosis, positive = "Alzhei
 print(knn_CM_2)
 ```
 
-## LDA Model 
+## LDA Model
 
 ```{r lda, warning=FALSE}
 #LDA model train
@@ -147,7 +145,7 @@ rand.forest.function <- function(x) {
   data = train_data,
   method = "rf",
   trControl = modelcv,
-  tuneLength = 10
+  tuneLength = 10,
   tuneGrid = expand.grid(.mtry = sqrt(ncol(train_data) - 1)), 
   ntree = x
   )
@@ -200,40 +198,65 @@ ggplot(perf_measures_long, aes(x = factor(ntrees), y = Value, fill = Measure)) +
 ```
 
 **Performance by number of trees**
-``` {r foresttable, echo=FALSE, message=FALSE}
+
+```{r foresttable, echo=FALSE, message=FALSE}
 kable(perf_measures_df, format = "html", digits = 2) %>%
   kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
-### Overview of the problem - Hong
+### 
 
-### Dataset Description - Hong
+## Overview of the Problem
+
+In our project, using anonymised patient history and assessments, we intend to create a right sized model with adequate performance to diagnose if the patient has Alzheimer's or not - binary classification. According to Alzheimer's association, 1 in 3 older adult dies with Alzheimer's or another form of dementia (Alzheimer's association, 2024). These statistics suggest that we have or will encounter people in our lives who suffer from some form of dementia. To date, the exact cause of Alzheimer's is not fully understood, but researchers have identified that vascular, genetics, and lifestyle & environmental factors contribute to its development. Therefore, early detection is critical to treat or prevent Alzheimer's. The ability to identify, detect and prevent, is crucial to sustain growing aging population in our societies. We believe our model can be the foundation to help people with early detection and intervention, and for governments to reduce the cost burden on Medicare.
+
+## Alzheimer's Disease Dataset
+
+There are **`r nrow(alzdata)`** observations and **`r ncol(alzdata)`** variables in this dataset, of which **`r (ncol(alzdata)-1)`** are independent variables and **'1'** is the target variable. The table below provides a breakdown of these variables.
+
+```{r, data_description, fold: true, echo=FALSE, message=FALSE}
+
+# Load required libraries
+library(readr)   # To read CSV files
+library(knitr)   # To format tables in a nice layout
+library(kableExtra)
+
+# Read the CSV file into a dataframe
+data <- read_csv("dataset_description.csv", show_col_types = FALSE)
+
+kable(data, format = "html") %>%
+  kable_styling() %>%
+  column_spec(1:ncol(data), extra_css = "font-size: 11px;") %>%  # Font size for table body
+  row_spec(0, extra_css = "font-size: 11px;")  # Font size for headers (row 0)
+``` 
+
 
 ### Initial Data Analysis / Visualisation of the data - Bijo
 
 ### Feature Engineering - Jess
-- Dummy encoded multi-level categorical variables
-- No missing data
-- Kept all the key features given the medical nature of the problem
-- Scaled and centered the data, important especially for Lasso and kNN
-- Converted binary factors to numeric for kNN and Lasso
+
+-   Dummy encoded multi-level categorical variables
+-   No missing data
+-   Kept all the key features given the medical nature of the problem
+-   Scaled and centered the data, important especially for Lasso and kNN
+-   Converted binary factors to numeric for kNN and Lasso
 
 ### Classification Algorithms used - All
-- Repeat cross-validation
-  - Resamples - chose F1
-- Hyperparameter tuning per model (everyone to contribute)
-  - Final model specs:
-    - KNN best tuned k =
-    - RF best tuned mtry = and ntree =
-    - Lasso best tuned lambda = and alpha =
-    - LDA (no hyperparameter tuning).
+
+-   Repeat cross-validation
+    -   Resamples - chose F1
+-   Hyperparameter tuning per model (everyone to contribute)
+    -   Final model specs:
+        -   KNN best tuned k =
+        -   RF best tuned mtry = and ntree =
+        -   Lasso best tuned lambda = and alpha =
+        -   LDA (no hyperparameter tuning).
 
 ### Classification Performance Evaluation - Jess
-- Sensitivity
-- Threshold adjustment
-- Confusion matrix heatmap for each model as well as metrics: Sensitivity and F1.
-- ROC curves for each model.
+
+-   Sensitivity
+-   Threshold adjustment
+-   Confusion matrix heatmap for each model as well as metrics: Sensitivity and F1.
+-   ROC curves for each model.
 
 ### Conclusion - Bijo
-
-
