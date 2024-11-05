@@ -11,7 +11,7 @@ editor: visual
 
 ```{r setup, echo=FALSE}
 if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman"); library(pacman)
-pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, dplyr, knitr, kableExtra, MASS, RColorBrewer, caTools, MLmetrics, lattice, psych, ggcorrplot)
+pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, dplyr, knitr, kableExtra, MASS, RColorBrewer, caTools, MLmetrics, lattice, psych, ggcorrplot, readr, tidyr)
 
 
 # read the cleaned Alzheimers dataset 
@@ -216,11 +216,6 @@ There are **`r nrow(alzdata)`** observations and **`r ncol(alzdata)`** variables
 
 ```{r, data_description, fold: true, echo=FALSE, message=FALSE}
 
-# Load required libraries
-library(readr)   # To read CSV files
-library(knitr)   # To format tables in a nice layout
-library(kableExtra)
-
 # Read the CSV file into a dataframe
 data <- read_csv("dataset_description.csv", show_col_types = FALSE)
 
@@ -232,12 +227,11 @@ kable(data, format = "html") %>%
 
 ### Initial Data Analysis / Visualisation of the data - Bijo
 
-
+Initial data analysis suggested that we had a full dataset with no missing values. As *Diagnosis* is our classification variable, we conducted our intial analysis around it. 
 
 ##### Figure 1. Percentage of frequencies in each class
 
 ```{r echo = FALSE}
-library(lattice)
 diagnosis_counts <- table(alzdata$Diagnosis)
 diagnosis_proportions <- prop.table(diagnosis_counts)
 
@@ -261,6 +255,7 @@ text(imbalance_barplot, diagnosis_proportions * 100 + 4,
 
 abline(h = 0, col = "black", lwd = 1)
 ```
+
 ##### Figure 2. Correlation heatmap of numeric predictor variables
 
 ```{r echo=FALSE}
@@ -284,9 +279,29 @@ ggcorrplot(numeric_cor_matrix,
            sig.level = 0.05,  # Significance level for p-values
            insig = "blank",  # Mark non-significant correlations
            pch = 1,  # Symbol for non-significant
-           colors = c("#E09F3E", "#E3DED1", "#99A88C"))
+           colors = c("#E09F3E", "#E3DED1", "#335C67"))
 ```
 
+##### Figure 3. Numeric predictor variables by diagnosis
+
+```{r violinplot, echo=FALSE, error=FALSE, warning=FALSE}
+# long format
+numeric_vars_long <- reshape2::melt(alzdata, id.vars = "Diagnosis", measure.vars = numeric_vars)
+
+# violin plots for numeric variables by target_var
+ggplot(numeric_vars_long, aes(x = Diagnosis, y = value, fill = Diagnosis)) +
+  geom_violin(trim = FALSE) +
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) +
+  facet_wrap(~ variable, scales = "free_y") +  # Creates a facet for each variable
+  labs(title = NULL, x = NULL, y = NULL) +
+  theme_minimal() +
+  scale_fill_manual(values = c("#E09F3E", "#335C67")) +
+  theme(
+    plot.title = element_text(size = 8),            
+    strip.text = element_text(size = 8),            
+    axis.text = element_text(size = 8),
+    legend.position = "right")
+```
 
 ### Feature Engineering - Jess
 
