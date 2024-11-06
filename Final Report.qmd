@@ -219,9 +219,12 @@ The ability to identify, detect and prevent, is crucial to sustain growing aging
 
 ## Alzheimer's Disease Dataset
 
-There are **`r nrow(alzdata)`** observations and **`r ncol(alzdata)`** variables in this dataset, of which **`r (ncol(alzdata)-1)`** are independent variables and **'1'** is the target variable. The table below provides a breakdown of these variables in its raw form. All the independent features are then converted into numeric and  scaled to enable fair feature comparison to improve model performance, enhance distance-based model accuracy in kNN, and reduce risk of numerical instability
+We selected a dataset from Kaggle.com to develop our predictive model. This dataset is highly comprehensive and contains synthetic data, offering extensive health information for **`r nrow(alzdata)`** patients, each uniquely identified with IDs ranging from 4751 to 6900. The dataset includes demographic details, lifestyle factors, medical history, clinical measurements, cognitive and functional assessments, symptoms, and a diagnosis of Alzheimer's Disease.
 
+With this richness in features, we have many variables to consider for our model. Notably, 65% of the patients are diagnosed as not having Alzheimer’s disease, while 35% are classified as having the disease.
+This dataset is ideal for researchers and data scientists aiming to explore factors associated with Alzheimer's, develop predictive models, and perform in-depth statistical analyses.
 
+The table below provides a breakdown of these variables in its raw form. 
 
 ```{r, data_description, fold: true, echo=FALSE, message=FALSE}
 
@@ -233,6 +236,9 @@ kable(data, format = "html") %>%
   column_spec(1:ncol(data), extra_css = "font-size: 11px;") %>%  # Font size for table body
   row_spec(0, extra_css = "font-size: 11px;")  # Font size for headers (row 0)
 ```
+
+To prepare the dataset for training and testing, the raw data was transformed into a consistent format and saved as an RDS file. All features were converted to numeric values and standardized to have a mean of 0 and a standard deviation of 1. The target variable was converted into a factor with two levels: 'Alzheimer' and 'No Alzheimer'. This standardization ensures that all four classifiers use the same dataset for training, testing, and performance evaluation. Feature engineering details are discussed further in this report.
+
 
 ### Initial Data Analysis / Visualisation of the data - Bijo
 
