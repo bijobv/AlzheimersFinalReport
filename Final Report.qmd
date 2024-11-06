@@ -11,7 +11,7 @@ editor: visual
 
 ```{r setup, echo=FALSE}
 if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman"); library(pacman)
-pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, dplyr, knitr, kableExtra, MASS, RColorBrewer, caTools, MLmetrics)
+pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, dplyr, knitr, kableExtra, MASS, RColorBrewer, caTools, MLmetrics, ROCit, ROCR, MLeval, plotscaper, precrec, parameters, see, performance, IMP, modelbased)
 
 
 # read the cleaned Alzheimers dataset 
@@ -28,7 +28,7 @@ modelcv <- trainControl(
   method = "repeatedcv",
   number = 10,
   repeats = 10,
-  search = "random", #or grid
+  search = "grid", #or random
   classProbs = TRUE,
   summaryFunction = prSummary, 
   savePredictions = "final",
@@ -36,7 +36,6 @@ modelcv <- trainControl(
 
 
 ```
-
 
 ## Lasso Regression Model
 
@@ -46,13 +45,15 @@ tune_grid <- expand.grid(alpha = 1, # alpha 1 denotes lasso regression model
                          lambda = seq(0.001, 0.1, length = 10))
 
 # Train the model
+set.seed(5003)
 lasso_model <- train(
   Diagnosis ~ ., 
   data = train_data,
   method = "glmnet",
   tuneGrid = tune_grid,
   trControl = modelcv,
-  preProcess = c("center", "scale")
+  preProcess = c("center", "scale"),
+  metric = "F"
   )
 
 # print the best lambda value
@@ -71,7 +72,6 @@ print(lasso_CM_2)
 
 
 ```
-
 
 ## kNN Model
 
@@ -97,7 +97,7 @@ knn_CM_2 <- confusionMatrix(knn_preds_2, test_data$Diagnosis, positive = "Alzhei
 print(knn_CM_2)
 ```
 
-## LDA Model 
+## LDA Model
 
 ```{r lda, warning=FALSE}
 #LDA model train
@@ -110,15 +110,6 @@ lda_model <- train(
   preProcess = c("center", "scale"),
   metric = "F"
 )
-```
-
-```{r resamples, eval=FALSE}
-#this is just for cross validated data - now we can go back and choose the metric we want to use and keep it consistent. F1 i think is the best. 
-resamples_results <- resamples(list(KNN = knn_model, LDA = lda_model, RF = rf_model, Lasso = lasso_model))
-summary(resamples_results)
-
-bwplot(resamples_results, metric = c("Recall", "F1", "AUC"))
-dotplot(resamples_results, metric = c("Recall", "F1", "AUC"))
 ```
 
 ```{r lda_predict_2, echo=FALSE, message=FALSE}
@@ -138,72 +129,63 @@ ntree_seq <- c(1, 50, 100, 250, 500)
 max.ntree_seq <- max(ntree_seq)
 test_diagnosis <- test_data[["Diagnosis"]]
 
-
-
-rand.forest.function <- function(x) { 
-  
-  rf_model <- train(
+rf_model <- train(
   Diagnosis ~ .,              
   data = train_data,
-  method = "rf",
+  method = "ranger",
   trControl = modelcv,
-  tuneLength = 10
-  tuneGrid = expand.grid(.mtry = sqrt(ncol(train_data) - 1)), 
-  ntree = x
-  )
-  
+  tuneLength = 10,
+  preProcess = c("center", "scale"),
+  #tuneGrid = expand.grid(.mtry = sqrt(ncol(train_data) - 1)), 
+  #ntree = x
+  metric = "F"
+)
   predict_rf <- predict(rf_model, newdata = test_data, type = "prob")
   predicted_labels <- ifelse(predict_rf[, "Alzheimers"] > 0.35, "Alzheimers", "No_Alzheimers") |> as.factor()
-  CM <- confusionMatrix(test_diagnosis, predicted_labels, positive = "Alzheimers")
-  Sensit <- CM$byClass[["Sensitivity"]]
-  Specif <- CM$byClass[["Specificity"]]
-  Accura <- CM$overall[["Accuracy"]]
-  TP <- CM$table["Alzheimers", "Alzheimers"]
-  FP <- CM$table["Alzheimers", "No_Alzheimers"]
-  FN <- CM$table["No_Alzheimers", "Alzheimers"]
-  precision <- TP / (TP + FP)
-  recall <- TP / (TP + FN)
-  F1 <- 2 * (precision * recall) / (precision + recall)
-  Performance_measures <- list(ntrees = x, Sensitivity = Sensit, Specificity = Specif, Accuracy = Accura, F1 = F1)
-  }
-perf_measures <- map(ntree_seq, rand.forest.function)
-sensitivities <- map_dbl(perf_measures, "Sensitivity")
-plot_data <- data.frame(ntree_seq, sensitivities)
-ggplot(plot_data, aes(x = ntree_seq, y = sensitivities)) +
-  geom_line() +
-  geom_point() + 
-  geom_text(aes(label = round(sensitivities, 4)), 
-            vjust = -0.5, 
-            color = "black", 
-            size = 3.5) +
-  labs(x = "Number of Trees", y = "Sensitivity") +
-  theme_minimal()
+  rf_CM <- confusionMatrix(test_diagnosis, predicted_labels, positive = "Alzheimers", mode = "everything")
 
-
-perf_measures_df <- bind_rows(perf_measures)
-
-perf_measures_long <- perf_measures_df %>%
-  pivot_longer(cols = c(Sensitivity, Specificity, Accuracy, F1),
-               names_to = "Measure",
-               values_to = "Value")
-
-ggplot(perf_measures_long, aes(x = factor(ntrees), y = Value, fill = Measure)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  geom_text(aes(label = sprintf("%.2f", Value)), 
-            position = position_dodge(width = 0.8), 
-            vjust = -0.5, 
-            size = 2.5) +
-  labs(x = "Number of Trees", y = "Value") +
-  scale_fill_manual(values = c("#E09F3E", "#335C67", "#99A88C", "#E3DED1")) + 
-  theme_minimal()
 
 ```
 
-**Performance by number of trees**
-``` {r foresttable, echo=FALSE, message=FALSE}
-kable(perf_measures_df, format = "html", digits = 2) %>%
-  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
+```{r resamples, eval=FALSE}
+#this is just for cross validated data - now we can go back and choose the metric we want to use and keep it consistent. F1 i think is the best. 
+resamples_results <- resamples(list(KNN = knn_model, LDA = lda_model, RF = rf_model, Lasso = lasso_model))
+summary(resamples_results)
+
+bwplot(resamples_results, metric = c("Recall", "F1", "AUC"))
+dotplot(resamples_results, metric = c("Recall", "F1", "AUC"))
 ```
+
+```{r}
+library(precrec)
+lda_probs <- lda_prob_predictions
+rf_probs <- predict_rf
+true_labels <- ifelse(test_data$Diagnosis == "Alzheimers", 1, 0)
+
+models_probs_list <- list(
+  knn = knn_probs$Alzheimers,
+  lda = lda_probs$Alzheimers,
+  lasso = lasso_probs$Alzheimers,
+  rf = rf_probs$Alzheimers
+)
+models_labels_list <- list(knn = knn_labels, lda = lda_labels, lasso = lasso_labels, rf = rf_labels)
+
+mmdata <- mmdata(scores = models_probs_list, labels = models_labels_list)
+mmprecrec <- evalmod(mmdata)
+autoplot(mmdata, "ROC")
+
+
+#youdensj 
+
+knn_rocit <- rocit(score = knn_probs, class = knn_labels)
+plot(knn_rocit)
+knn_j <- knn_rocit$cutoff[which.max(knn_rocit$Youden)]
+print(knn_j)
+
+
+```
+
+**Performance by number of trees** \#`{r foresttable, echo=FALSE, message=FALSE} #kable(perf_measures_df, format = "html", digits = 2)  #kable_styling(full_width = FALSE, bootstrap_options = c("striped", #"hover", "condensed")) #`
 
 ### Overview of the problem - Hong
 
@@ -212,28 +194,45 @@ kable(perf_measures_df, format = "html", digits = 2) %>%
 ### Initial Data Analysis / Visualisation of the data - Bijo
 
 ### Feature Engineering - Jess
-- Dummy encoded multi-level categorical variables
-- No missing data
-- Kept all the key features given the medical nature of the problem
-- Scaled and centered the data, important especially for Lasso and kNN
-- Converted binary factors to numeric for kNN and Lasso
+
+-   Dummy encoded multi-level categorical variables
+-   No missing data
+-   Kept all the key features given the medical nature of the problem
+-   Scaled and centered the data, important especially for Lasso and kNN
+-   Converted binary factors to numeric for kNN and Lasso
 
 ### Classification Algorithms used - All
-- Repeat cross-validation
-  - Resamples - chose F1
-- Hyperparameter tuning per model (everyone to contribute)
-  - Final model specs:
-    - KNN best tuned k =
-    - RF best tuned mtry = and ntree =
-    - Lasso best tuned lambda = and alpha =
-    - LDA (no hyperparameter tuning).
+
+-   Repeat cross-validation
+    -   Resamples - chose F1
+-   Hyperparameter tuning per model (everyone to contribute)
+    -   Final model specs:*t*
+        -   KNN best tuned k =
+        -   RF best tuned mtry = and ntree =
+        -   Lasso best tuned lambda = and alpha =
+        -   LDA (no hyperparameter tuning).
 
 ### Classification Performance Evaluation - Jess
-- Sensitivity
-- Threshold adjustment
-- Confusion matrix heatmap for each model as well as metrics: Sensitivity and F1.
-- ROC curves for each model.
+
+-   Sensitivity
+-   Threshold adjustment
+-   Confusion matrix heatmap for each model as well as metrics: Sensitivity and F1.
+-   ROC curves for each model.
 
 ### Conclusion - Bijo
 
+::: callout-note
+We utilised k-fold cross-validation to ensure our chosen models performance will generalise to the test data. We used 10-fold cross-validation with 10 repeats as a common *TrainControl* object in `caret`{=texinfo} where we utilised a 'grid' search. When training our models individually, we began with utilising a common tuneLength = 10 and not specifying a performance metric. We utilised the caret::resamples function to assess the variability of our models across the cross-validated folds. These folds can be plotted as curves Appendix 1 shows the resampling results across tuning parameters.
 
+###### Performance metrics for hyperparameter tuning
+
+4 metrics are provided from resamples to tune our parameter grid. AUC (Area Under the Curve) measures a model's ability to differentiate between classes, with a higher score indicating greater classification ability. *Recall* (referred interchangeably, *Sensitivity or True Positive Rate*) is the probability of correctly identifying a positive case. In the context of our problem, it is the model's ability to classify an Alzheimer's disease patient with Alzheimer's disease. A recall score of 1.0 is a perfect classifier, with lower values leading to more false negatives (identifying an Alzheimer's patient as no Alzheimer's). Precision (Positive Predictive Value) is the number of correct diagnoses out of all the patients our model classified as having Alzheimer's disease. Lower precision increases the rate of false positives.
+:::
+
+::: callout-note
+We initially only focused on Recall as the metric, however, the resamples data suggested that by using Recall as a metric for hyperparameter tuning, some of our models may have been overfitting (scores obtained were 1.0) (see Appendix 1). When interpreting the resamples output, any high standard deviation or variability between metric scores, this can indicate overfitting. We therefore decided to refine the tunelength to tuneGrid and tune for the F1 metric across all models, offering a balanced approach and a focus on consistency rather than the maximum value.
+
+Resampling results across tuning parameter *k* showed that as k increased, AUC increased, Precision decreased, Recall increased and F1 decreased.
+
+Our tuning strategy
+:::
