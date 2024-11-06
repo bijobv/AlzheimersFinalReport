@@ -227,7 +227,10 @@ kable(data, format = "html") %>%
 
 ### Initial Data Analysis / Visualisation of the data - Bijo
 
-Initial data analysis suggested that we had a full dataset with no missing values. As *Diagnosis* is our classification variable, we conducted our intial analysis around it. 
+Initial data analysis suggested that we had a full dataset with no missing values. As *Diagnosis* is our classification variable, we conducted our initial analysis around it. In figure 1, we can see how the dataset is skewed towards patients diagnosed with **No Alzheimers**. We will share later how the imbalance in the data will be addressed in our classification performance evaluation. 
+Through a correlation matrix, in figure 2, we also observed that none of the features have a notable correlation, confirming that the dataset is synthetic. 
+Finally, to observe the distribution of the diagnosis for each feature, we explored a violin plot in figure 3, that suggested a normal distribution for most of features - except for MMSE, Functional Assessment and ADL. These 3 score emerge again as key features through our classification algorithms.
+
 
 ##### Figure 1. Percentage of frequencies in each class
 
