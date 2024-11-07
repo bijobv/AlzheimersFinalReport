@@ -16,6 +16,7 @@ pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, dp
 
 # read the cleaned Alzheimers dataset 
 alzdata <- readRDS("knnalzdata.RDS")
+ogalzdata <- readRDS("ogalzdata.RDS")
 ```
 
 ```{r train, echo=FALSE, message=FALSE}
@@ -279,8 +280,8 @@ abline(h = 0, col = "black", lwd = 1)
 ```{r echo=FALSE}
 
 # Calculate correlation matrix and p-value matrix
-numeric_vars <- names(alzdata)[sapply(alzdata, is.numeric)]
-cor_results <- corr.test(alzdata[, numeric_vars], method = "pearson")
+numeric_vars <- names(ogalzdata)[sapply(ogalzdata, is.numeric)]
+cor_results <- corr.test(ogalzdata[, numeric_vars], method = "pearson")
 
 numeric_cor_matrix <- cor_results$r
 numeric_p_matrix <- cor_results$p
@@ -291,7 +292,7 @@ ggcorrplot(numeric_cor_matrix,
            type = "lower", 
            lab = TRUE,  # Show correlation values
            lab_size = 0, 
-           tl.cex = 6,  # Text label size
+           tl.cex = 8,  # Text label size
            tl.col = "black",
            p.mat = numeric_p_matrix, 
            sig.level = 0.05,  # Significance level for p-values
@@ -304,7 +305,7 @@ ggcorrplot(numeric_cor_matrix,
 
 ```{r violinplot, echo=FALSE, error=FALSE, warning=FALSE}
 # long format
-numeric_vars_long <- reshape2::melt(alzdata, id.vars = "Diagnosis", measure.vars = numeric_vars)
+numeric_vars_long <- reshape2::melt(ogalzdata, id.vars = "Diagnosis", measure.vars = numeric_vars)
 
 # violin plots for numeric variables by target_var
 ggplot(numeric_vars_long, aes(x = Diagnosis, y = value, fill = Diagnosis)) +
