@@ -11,7 +11,7 @@ editor: visual
 
 ```{r setup, echo=FALSE}
 if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman"); library(pacman)
-pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, dplyr, knitr, kableExtra, MASS, RColorBrewer, caTools, MLmetrics, ROCit, ROCR, MLeval, plotscaper, precrec, parameters, see, performance, IMP, modelbased)
+pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, dplyr, knitr, kableExtra, MASS, RColorBrewer, caTools, MLmetrics, ROCit, ROCR, MLeval, plotscaper, precrec, parameters, see, performance, modelbased, cutpointr, performanceEstimation, reactablefmtr)
 
 
 # read the cleaned Alzheimers dataset 
@@ -31,7 +31,7 @@ modelcv <- trainControl(
   search = "grid", #or random
   classProbs = TRUE,
   summaryFunction = prSummary, 
-  savePredictions = "final",
+  savePredictions = "all",
 )
 
 
@@ -41,8 +41,7 @@ modelcv <- trainControl(
 
 ```{r lasso, echo=FALSE, message=FALSE}
 # setup a range of lambda values 
-tune_grid <- expand.grid(alpha = 1, # alpha 1 denotes lasso regression model 
-                         lambda = seq(0.001, 0.1, length = 10))
+#tune_grid <- expand.grid(alpha = 1, lambda = seq(0.001, 0.1, length = 10))
 
 # Train the model
 set.seed(5003)
@@ -50,8 +49,9 @@ lasso_model <- train(
   Diagnosis ~ ., 
   data = train_data,
   method = "glmnet",
-  tuneGrid = tune_grid,
+  #tuneGrid = tune_grid,
   trControl = modelcv,
+  tuneLength = 10,
   preProcess = c("center", "scale"),
   metric = "F"
   )
@@ -61,10 +61,20 @@ print(lasso_model$bestTune)
 
 ```
 
+```{r}
+#no adjusted threshold
+#lasso_preds <- predict(lasso_model, newdata = test_data)
+lasso_probs <- predict(lasso_model, newdata = test_data, type = "prob")[, "Alzheimers"]
+lasso_CM <-  confusionMatrix(lasso_probs, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
+print(lasso_CM)
+
+```
+
 ```{r lasso_performance, echo=FALSE, message=FALSE}
 
 #with adjusted probabilities
-lasso_probs <- predict(lasso_model, newdata = test_data, type = "prob")
+
+lasso_probs <- predict(lasso_model, newdata = test_data, type = "prob")[, "Alzheimers"]
 lasso_predictions_2 <- ifelse(lasso_probs[, "Alzheimers"] > 0.35, "Alzheimers", "No_Alzheimers")
 lasso_predictions_2 <- factor(lasso_predictions_2, levels = c("No_Alzheimers", "Alzheimers"))
 lasso_CM_2 <- confusionMatrix(lasso_predictions_2, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
@@ -90,11 +100,14 @@ metric = "F"
 ```
 
 ```{r knn_predict_2, echo=FALSE, message=FALSE}
-knn_probs <- predict(knn_model, newdata = test_data, type = "prob")
-knn_preds_2 <- ifelse(knn_probs[, "Alzheimers"] > 0.35, "Alzheimers", "No_Alzheimers")
-knn_preds_2 <- factor(knn_preds_2, levels = c("No_Alzheimers", "Alzheimers"))
-knn_CM_2 <- confusionMatrix(knn_preds_2, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
-print(knn_CM_2)
+#knn_preds <- predict(knn_model, newdata = test_data)
+knn_probs <- predict(knn_model, newdata = test_data, type = "prob")[, "Alzheimers"]
+#knn_CM <- confusionMatrix(knn_preds, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
+#knn_CM2 <- confusionMatrix(knn_preds_2, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
+#knn_preds_2 <- ifelse(knn_probs[, "Alzheimers"] > 0.35, "Alzheimers", "No_Alzheimers")
+#knn_preds_2 <- factor(knn_preds_2, levels = c("No_Alzheimers", "Alzheimers"))
+#knn_CM_2 <- confusionMatrix(knn_preds_2, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
+print(knn_CM)
 ```
 
 ## LDA Model
@@ -110,6 +123,13 @@ lda_model <- train(
   preProcess = c("center", "scale"),
   metric = "F"
 )
+```
+
+```{r}
+#lda_preds <- predict(lda_model, newdata = test_data)
+lda_probs <- predict(lda_model, newdata = test_data, type = "prob")[, "Alzheimers"]
+#lda_CM <- confusionMatrix(lda_preds, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
+#print(lda_CM)
 ```
 
 ```{r lda_predict_2, echo=FALSE, message=FALSE}
@@ -140,9 +160,12 @@ rf_model <- train(
   #ntree = x
   metric = "F"
 )
-  predict_rf <- predict(rf_model, newdata = test_data, type = "prob")
-  predicted_labels <- ifelse(predict_rf[, "Alzheimers"] > 0.35, "Alzheimers", "No_Alzheimers") |> as.factor()
-  rf_CM <- confusionMatrix(test_diagnosis, predicted_labels, positive = "Alzheimers", mode = "everything")
+
+rf_probs <- predict(rf_model, newdata = test_data, type = "prob")[, "Alzheimers"]
+#predict_rf <- predict(rf_model, newdata = test_data)
+#rf_CM_noadjustment <- confusionMatrix(predict_rf, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
+ # predicted_labels <- ifelse(predict_rf[, "Alzheimers"] > 0.35, "Alzheimers", "No_Alzheimers") |> as.factor()
+ # rf_CM <- confusionMatrix(test_diagnosis, predicted_labels, positive = "Alzheimers", mode = "everything")
 
 
 ```
@@ -152,35 +175,70 @@ rf_model <- train(
 resamples_results <- resamples(list(KNN = knn_model, LDA = lda_model, RF = rf_model, Lasso = lasso_model))
 summary(resamples_results)
 
-bwplot(resamples_results, metric = c("Recall", "F1", "AUC"))
-dotplot(resamples_results, metric = c("Recall", "F1", "AUC"))
+bwplot(resamples_results, metric = c("Recall", "F1", "AUC", "Precision"))
+dotplot(resamples_results, metric = c("Recall", "F1", "AUC", "Precision"))
 ```
 
 ```{r}
 library(precrec)
-lda_probs <- lda_prob_predictions
-rf_probs <- predict_rf
+
 true_labels <- ifelse(test_data$Diagnosis == "Alzheimers", 1, 0)
 
 models_probs_list <- list(
-  knn = knn_probs$Alzheimers,
-  lda = lda_probs$Alzheimers,
-  lasso = lasso_probs$Alzheimers,
-  rf = rf_probs$Alzheimers
+  "KNN" = knn_probs,
+  "LDA" = lda_probs,
+  "Lasso" = lasso_probs,
+  "Random Forest" = rf_probs
 )
-models_labels_list <- list(knn = knn_labels, lda = lda_labels, lasso = lasso_labels, rf = rf_labels)
 
-mmdata <- mmdata(scores = models_probs_list, labels = models_labels_list)
+name_list <- c("KNN", "LDA", "Lasso", "RF")
+#models_labels_list <- list(knn = knn_labels, lda = lda_labels, lasso = lasso_labels, rf = rf_labels)
+
+mmdata <- mmdata(scores = models_probs_list, labels = true_labels, modnames = name_list)
 mmprecrec <- evalmod(mmdata)
-autoplot(mmdata, "ROC")
+plot(mmprecrec, curvetype = "ROC", main = "ROC Curves for KNN, LDA, Lasso and RF models")
+
+roc_df <- as.data.frame(mmprecrec, curvetype = "ROC")
 
 
-#youdensj 
+#
 
-knn_rocit <- rocit(score = knn_probs, class = knn_labels)
-plot(knn_rocit)
-knn_j <- knn_rocit$cutoff[which.max(knn_rocit$Youden)]
-print(knn_j)
+#autoplot(mmprecrec, "ROC")
+#autoplot(mmprecrec, "PR")
+
+
+#mmdata_pr <- mmdata(scores = models_probs_list, labels = true_labels)
+
+
+#roc <- roc(true_labels, lda_probs)
+
+```
+
+```{r}
+CM_allmodels <- data.frame(
+  Model = c("Lasso", "KNN", "LDA", "RF"),
+  Accuracy = c(0.70, 0.76, 0.83, 0.95),
+  Recall = c(0.70, 0.44, 0.74, 0.91),
+  Precision = c(0.82, 0.79, 0.77, 0.95),
+  F1_Score = c(0.76, 0.57, 0.76, 0.93),
+  stringsAsFactors = FALSE
+)
+
+CM_long <- CM_allmodels %>%
+  pivot_longer(
+    cols = c("Accuracy", "Recall", "Precision", "F1_Score"),
+    names_to = "Metric",
+    values_to = "Value"
+  )
+
+ggplot(CM_long, aes(x = Model, y = Value, fill = Model)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ Metric, ncol = 2)  +
+  labs(title = "Model Performance Metrics", y = "Value") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        strip.text = element_text(face = "bold"))
 
 
 ```
@@ -216,6 +274,7 @@ print(knn_j)
 
 -   Sensitivity
 -   Threshold adjustment
+    -   0.35
 -   Confusion matrix heatmap for each model as well as metrics: Sensitivity and F1.
 -   ROC curves for each model.
 
@@ -230,7 +289,11 @@ We utilised k-fold cross-validation to ensure our chosen models performance will
 :::
 
 ::: callout-note
-We initially only focused on Recall as the metric, however, the resamples data suggested that by using Recall as a metric for hyperparameter tuning, some of our models may have been overfitting (scores obtained were 1.0) (see Appendix 1). When interpreting the resamples output, any high standard deviation or variability between metric scores, this can indicate overfitting. We therefore decided to refine the tunelength to tuneGrid and tune for the F1 metric across all models, offering a balanced approach and a focus on consistency rather than the maximum value.
+We initially only focused on Recall as the metric, however, the resamples data suggested that by using Recall as a metric for hyperparameter tuning, some of our models may have been overfitting (scores obtained were 1.0) (see Appendix 1). When interpreting the resamples output, any high standard deviation or variability between metric scores can indicate overfitting. We therefore decided to refine the tunelength to tuneGrid and tune for the F1 metric across all models, offering a balanced approach and a focus on consistency rather than the maximum value.
+
+Figure 4 demonstrates that our random forest model outperformed the others on all metrics on the cross-validation folds training.
+
+The final hyperparameters for each model is shown in Table 2.
 
 Resampling results across tuning parameter *k* showed that as k increased, AUC increased, Precision decreased, Recall increased and F1 decreased.
 

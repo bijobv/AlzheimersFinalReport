@@ -1,0 +1,37 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+format:
+    html:
+        embed-resources: true
+        page-layout: full
+---
+
+After training the 4 models using
+
+We configured the cross-validation process using the `trainControl` function. Specifically, we set up `repeatedcv` with 10 folds and 10 repetitions (`method = "repeatedcv"`, `number = 10`, `repeats = 10`). To explore hyperparameter tuning, we used a **grid search** (`search = "grid"`) for the tuning grid, enabling `classProbs = TRUE` to obtain probability predictions for each class. Additionally, we specified `prSummary` as the `summaryFunction` to evaluate Precision-Recall metrics, and we saved predictions across all resamples (`savePredictions = "all"`).
+
+We used `resamples` to analyse the performance of our models on cross validation
+
+We trained the 4 models using `tuneLength = 10` which explores a range of parameter values, as we were unsure of exact values, and our `trControl`
+
+We trained the 4 models using `tuneLength` to specify the number of tuning parameters and `trainControl` to set up cross-validation.
+
+To ensure generalisation of our chosen models to the test data, we used 10-fold cross-validation with 10 repeats. We implemented this by using a common trainControl object (from caret) that used a grid search for the hyperparameter tuning grid. We initiallys set our tuneLength = 10 to let caret generate the hyperparameter settings. To determine the variability anad consistecy of our models on the cross validated folds, we used the resamples function to visualise and compare their performance. 4 metrics are extracted from resamples to aid us in the hyperparameter tuning process: AUC, Recall, Precision and F1 score.
+
+AUC (Area Under the ROC Curve): It measures a model’s ability to differentiate between classes, if the value if high, it means it has high classification power.
+
+Recall (Sensitivity or True Positive Rate): It indicates what percentage of actual positive cases had been correctly identified by the model. For our problem, it is the measure of how well the model is able to classify patients with Alzheimer's disease. A Recall score of 1.0 represents a perfect classifier; lower values represent more false negatives e.g., misclassifying an Alzheimer's patient as being other than one (non-Alzheimer's).
+
+Precision (Positive Predictive Value): The proportion of positive predictions that are correctly classified with denote. Lower Precision raises the false positives rate — incorrectly identifying a person without Alzheimer’s as having Alzheimer’s.
+
+F1-Score (F): Mean of precision and recall.
+
+Across 100 samples, our rf model consistently outperformed the other 3 models on all metrics (see Appendix) across the majority of folds. Figure 4 also emphasises this finding also allowing us to visualise that rf had the smallest variability of scores out of all models, which on resamples output, indicates the model is not overfitting. The second best performer overall was more difficult to determine, as the mean Recall for KNN (was higher than the Recall for LDA and Lasso. However the significant drop in precision, as well as the lower AUC, suggest relying purely on Recall is not ideal.
+
+#### Results on the test data
+
+When making predictions with our models on the test data, we obtained the confusion matrices for each model and examined the results. The results can be summarised in Table 3 and Figure 5. Similarly to the results on the cross validation folds, the RF model outperforms the 3 other models across all metrics. It has excellent Recall and also Precision, which minimises both false negatives and false positives. kNN shows the lowest recall, suggesting it struggles to identify the Alzheimer's cases which results in a high number of false negatives. Lasso shows average performance across all metrics.
+
+To explore whether threshold adjustment would have been necessary for our models, to take into account our class imbalance, we examined the ROC curves which will tell us each model's performance across all classification thresholds (without focusing specifically on the positive class) (Figure 6).
