@@ -342,7 +342,9 @@ ggplot(numeric_vars_long, aes(x = Diagnosis, y = value, fill = Diagnosis)) +
         -   KNN best tuned k =
         -   **Random Forest**:
             We also trained and tested a decision tree model to inspect the region where a patient belongs and predict the most commonly occurring class in that region. To improve these predictions, we extended the tree to a Random Forest by training our model on an ensemble of trees - 1, 50, 100, 250 and 500. To further tune the model, we also trained the model on various mtry parameters - 1, 6, 11, 16, 21, 26, 31 and 36, to find the best m predictors at each split. 
-        -   Lasso best tuned lambda = and alpha =
+            **Lasso Model**
+            For the Lasso model, we optimize the lambda parameter to control the regularization strength. High lambda values lead to simpler models by shrinking coefficients to zero, while low values retain more predictors. We use cross-validation with different lambda values to find the best balance between bias and variance. To automate this process, we perform a grid search across a range of 10 lambda values (0.001 to 0.1) to identify the optimal choice. Since Lasso is sensitive to feature scales, standardizing the data is essential. Finally, we refit the model on the full training set using the chosen lambda for final predictions. This approach ensures a well-regularized, generalized model suited to the task.
+        
         -   LDA (no hyperparameter tuning).
 
 ### Classification Performance Evaluation - Jess
