@@ -16,6 +16,7 @@ pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, dp
 
 # read the cleaned Alzheimers dataset 
 alzdata <- readRDS("knnalzdata.RDS")
+ogalzdata <- readRDS("ogalzdata.RDS")
 ```
 
 ```{r train, echo=FALSE, message=FALSE}
@@ -134,9 +135,8 @@ print(lda_CM_2)
 ```{r rfB, message=FALSE, echo=FALSE, warning=FALSE}
 ntree_seq <- c(1, 50, 100, 250, 500)
 max.ntree_seq <- max(ntree_seq)
+mtry_values <- seq(1, ncol(train_data) - 1, by = 5)
 test_diagnosis <- test_data[["Diagnosis"]]
-
-
 
 rand.forest.function <- function(x) { 
   
@@ -146,7 +146,7 @@ rand.forest.function <- function(x) {
   method = "rf",
   trControl = modelcv,
   tuneLength = 10,
-  tuneGrid = expand.grid(.mtry = sqrt(ncol(train_data) - 1)), 
+  tuneGrid = expand.grid(.mtry = mtry_values), 
   ntree = x
   )
   
@@ -244,9 +244,9 @@ To prepare the dataset for training and testing, the raw data was transformed in
 
 ### Initial Data Analysis / Visualisation of the data - Bijo
 
-Initial data analysis suggested that we had a full dataset with no missing values. As *Diagnosis* is our classification variable, we conducted our initial analysis around it. In figure 1, we can see how the dataset is skewed towards patients diagnosed with **No Alzheimers**. We will share later how the imbalance in the data will be addressed in our classification performance evaluation. 
-Through a correlation matrix, in figure 2, we also observed that none of the features have a notable correlation, confirming that the dataset is synthetic. 
-Finally, to observe the distribution of the diagnosis for each feature, we explored a violin plot in figure 3, that suggested a normal distribution for most of features - except for MMSE, Functional Assessment and ADL. These 3 score emerge again as key features through our classification algorithms.
+Initial data analysis suggested that we had a full dataset with no missing values. As *Diagnosis* is our classification variable, we conducted our initial analysis around it. In figure 1, we can see how the dataset is imbalanced towards patients diagnosed with **No Alzheimers**. We will share later how the imbalance in the data will be addressed in our classification performance evaluation. 
+Through a Pearson correlation matrix, in figure 2, we also observed that the features have negligible colinearility between them.
+Finally, to observe the distribution of the diagnosis for each feature, we explored a violin plot in figure 3, that suggested a normal distribution for most of features - except for MMSE, Functional Assessment and ADL. 
 
 
 ##### Figure 1. Percentage of frequencies in each class
@@ -281,8 +281,8 @@ abline(h = 0, col = "black", lwd = 1)
 ```{r echo=FALSE}
 
 # Calculate correlation matrix and p-value matrix
-numeric_vars <- names(alzdata)[sapply(alzdata, is.numeric)]
-cor_results <- corr.test(alzdata[, numeric_vars], method = "pearson")
+numeric_vars <- names(ogalzdata)[sapply(ogalzdata, is.numeric)]
+cor_results <- corr.test(ogalzdata[, numeric_vars], method = "pearson")
 
 numeric_cor_matrix <- cor_results$r
 numeric_p_matrix <- cor_results$p
@@ -293,20 +293,22 @@ ggcorrplot(numeric_cor_matrix,
            type = "lower", 
            lab = TRUE,  # Show correlation values
            lab_size = 0, 
-           tl.cex = 6,  # Text label size
+           tl.cex = 8,  # Text label size
            tl.col = "black",
            p.mat = numeric_p_matrix, 
            sig.level = 0.05,  # Significance level for p-values
            insig = "blank",  # Mark non-significant correlations
            pch = 1,  # Symbol for non-significant
            colors = c("#E09F3E", "#E3DED1", "#335C67"))
+
+
 ```
 
 ##### Figure 3. Numeric predictor variables by diagnosis
 
 ```{r violinplot, echo=FALSE, error=FALSE, warning=FALSE}
 # long format
-numeric_vars_long <- reshape2::melt(alzdata, id.vars = "Diagnosis", measure.vars = numeric_vars)
+numeric_vars_long <- reshape2::melt(ogalzdata, id.vars = "Diagnosis", measure.vars = numeric_vars)
 
 # violin plots for numeric variables by target_var
 ggplot(numeric_vars_long, aes(x = Diagnosis, y = value, fill = Diagnosis)) +
@@ -333,12 +335,13 @@ ggplot(numeric_vars_long, aes(x = Diagnosis, y = value, fill = Diagnosis)) +
 
 ### Classification Algorithms used - All
 
--   Repeat cross-validation
+-   Repeat cross-validation (for ALL models)
     -   Resamples - chose F1
 -   Hyperparameter tuning per model (everyone to contribute)
     -   Final model specs:
         -   KNN best tuned k =
-        -   RF best tuned mtry = and ntree =
+        -   **Random Forest**:
+            We also trained and tested a decision tree model to inspect the region where a patient belongs and predict the most commonly occurring class in that region. To improve these predictions, we extended the tree to a Random Forest by training our model on an ensemble of trees - 1, 50, 100, 250 and 500. To further tune the model, we also trained the model on various mtry parameters - 1, 6, 11, 16, 21, 26, 31 and 36, to find the best m predictors at each split. 
         -   Lasso best tuned lambda = and alpha =
         -   LDA (no hyperparameter tuning).
 
