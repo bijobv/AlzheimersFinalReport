@@ -111,14 +111,7 @@ lda_model <- train(
 )
 ```
 
-```{r resamples, eval=FALSE}
-#this is just for cross validated data - now we can go back and choose the metric we want to use and keep it consistent. F1 i think is the best. 
-resamples_results <- resamples(list(KNN = knn_model, LDA = lda_model, RF = rf_model, Lasso = lasso_model))
-summary(resamples_results)
 
-bwplot(resamples_results, metric = c("Recall", "F1", "AUC"))
-dotplot(resamples_results, metric = c("Recall", "F1", "AUC"))
-```
 
 ```{r lda_predict_2, echo=FALSE, message=FALSE}
 lda_prob_predictions <- predict(lda_model, newdata = test_data, type = "prob")
@@ -132,7 +125,7 @@ print(lda_CM_2)
 
 ## Random Forest
 
-```{r rfB, message=FALSE, echo=FALSE, warning=FALSE}
+```{r rfB, message=FALSE, echo=FALSE, warning=FALSE, eval=FALSE}
 ntree_seq <- c(1, 50, 100, 250, 500)
 max.ntree_seq <- max(ntree_seq)
 mtry_values <- seq(1, ncol(train_data) - 1, by = 5)
@@ -149,6 +142,8 @@ rand.forest.function <- function(x) {
   tuneGrid = expand.grid(.mtry = mtry_values), 
   ntree = x
   )
+  
+  rf_probs <- predict(rf_model, newdata = test_data, type = "prob")[, "Alzheimers"]
   
   predict_rf <- predict(rf_model, newdata = test_data, type = "prob")
   predicted_labels <- ifelse(predict_rf[, "Alzheimers"] > 0.35, "Alzheimers", "No_Alzheimers") |> as.factor()
@@ -337,10 +332,83 @@ In order to evaluate the performance of our models, we utilised a variety of met
 
 We trained our models to the specifications described. On the cross-validation folds (across 100 samples) our rf model consistently outperformed the other 3 models on all metrics (see Appendix) across the majority of folds. Figure 4 also emphasises this finding also allowing us to visualise that rf had the smallest variability of scores out of all models, which on resamples output, indicates the model is not overfitting. The second best performer overall was more difficult to determine, as the mean Recall for KNN (was higher than the Recall for LDA and Lasso. However the significant drop in precision, as well as the lower AUC, suggest relying purely on Recall is not ideal.
 
+
+```{r}
+resamples_results <- resamples(list(KNN = knn_model, LDA = lda_model, RF = rf_model, Lasso = lasso_model))
+#summary(resamples_results)
+
+bwplot(resamples_results, metric = c("Recall", "F1", "AUC", "Precision"))
+#dotplot(resamples_results, metric = c("Recall", "F1", "AUC", "Precision"))
+
+```
+
 To evaluate the models performance on the test data, we examined the confusion matrices and the ROC and Precision-Recall curves for each of the models. The results can be summarised in Table 3 and Figure 5. Similarly to the results on the cross validation folds, the RF model outperforms the 3 other models across all metrics. It has excellent Recall and also Precision, which minimises both false negatives and false positives. kNN shows the lowest recall, suggesting it struggles to identify the Alzheimer's cases which results in a high number of false negatives. Lasso shows average performance across all metrics.
+
+```{r}
+CM_allmodels <- data.frame(
+  Model = c("Lasso", "KNN", "LDA", "RF"),
+  Accuracy = c(0.70, 0.76, 0.83, 0.95),
+  Recall = c(0.70, 0.44, 0.74, 0.91),
+  Precision = c(0.82, 0.79, 0.77, 0.95),
+  F1_Score = c(0.76, 0.57, 0.76, 0.93),
+  stringsAsFactors = FALSE
+)
+
+CM_long <- CM_allmodels %>%
+  pivot_longer(
+    cols = c("Accuracy", "Recall", "Precision", "F1_Score"),
+    names_to = "Metric",
+    values_to = "Value"
+  )
+
+ggplot(CM_long, aes(x = Model, y = Value, fill = Model)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ Metric, ncol = 2)  +
+  labs(title = "Model Performance Metrics", y = "Value") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        strip.text = element_text(face = "bold"))
+
+
+```
+
+
+
+```{r}
+library(precrec)
+true_labels <- ifelse(test_data$Diagnosis == "Alzheimers", 1, 0)
+models_probs_list <- list(
+  "KNN" = knn_probs,
+  "LDA" = lda_probs,
+  "Lasso" = lasso_probs,
+  "Random Forest" = rf_probs
+)
+
+name_list <- c("KNN", "LDA", "Lasso", "RF")
+mmdata <- mmdata(scores = models_probs_list, labels = true_labels, modnames = name_list)
+mmprecrec <- evalmod(mmdata)
+plot(mmprecrec, curvetype = "ROC", main = "ROC Curves for KNN, LDA, Lasso and RF models")
+
+```
 
 Results Methods used and results obtained.
 
 Clearly described the model comparison and the final selected model based on the proposed evaluation strategies. Correctly evaluate the different classification models, more than 1 metric.
 
 ### Conclusion - Bijo Varghese
+
+The best model 
+
+Why RF performed better. 
+
+Limitations: synthetic data, etc
+
+Future research
+  Data - ensemble methods
+
+  Medical - test on real patient data, consult with clinical experts. 
+  
+  
+Appendix
+  
