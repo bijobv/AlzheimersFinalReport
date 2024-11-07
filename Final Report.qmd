@@ -135,9 +135,8 @@ print(lda_CM_2)
 ```{r rfB, message=FALSE, echo=FALSE, warning=FALSE}
 ntree_seq <- c(1, 50, 100, 250, 500)
 max.ntree_seq <- max(ntree_seq)
+mtry_values <- seq(1, ncol(train_data) - 1, by = 5)
 test_diagnosis <- test_data[["Diagnosis"]]
-
-
 
 rand.forest.function <- function(x) { 
   
@@ -147,7 +146,7 @@ rand.forest.function <- function(x) {
   method = "rf",
   trControl = modelcv,
   tuneLength = 10,
-  tuneGrid = expand.grid(.mtry = sqrt(ncol(train_data) - 1)), 
+  tuneGrid = expand.grid(.mtry = mtry_values), 
   ntree = x
   )
   
@@ -334,12 +333,13 @@ ggplot(numeric_vars_long, aes(x = Diagnosis, y = value, fill = Diagnosis)) +
 
 ### Classification Algorithms used - All
 
--   Repeat cross-validation
+-   Repeat cross-validation (for ALL models)
     -   Resamples - chose F1
 -   Hyperparameter tuning per model (everyone to contribute)
     -   Final model specs:
         -   KNN best tuned k =
-        -   RF best tuned mtry = and ntree =
+        -   **Random Forest**:
+            We also trained and tested a decision tree model to inspect the region where a patient belongs and predict the most commonly occurring class in that region. To improve these predictions, we extended the tree to a Random Forest by training our model on an ensemble of trees - 1, 50, 100, 250 and 500. To further tune the model, we also trained the model on various mtry parameters - 1, 6, 11, 16, 21, 26, 31 and 36, to find the best m predictors at each split. 
         -   Lasso best tuned lambda = and alpha =
         -   LDA (no hyperparameter tuning).
 
