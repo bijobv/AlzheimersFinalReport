@@ -243,9 +243,9 @@ To prepare the dataset for training and testing, the raw data was transformed in
 
 ### Initial Data Analysis / Visualisation of the data - Bijo
 
-Initial data analysis suggested that we had a full dataset with no missing values. As *Diagnosis* is our classification variable, we conducted our initial analysis around it. In figure 1, we can see how the dataset is skewed towards patients diagnosed with **No Alzheimers**. We will share later how the imbalance in the data will be addressed in our classification performance evaluation. 
-Through a correlation matrix, in figure 2, we also observed that none of the features have a notable correlation, confirming that the dataset is synthetic. 
-Finally, to observe the distribution of the diagnosis for each feature, we explored a violin plot in figure 3, that suggested a normal distribution for most of features - except for MMSE, Functional Assessment and ADL. These 3 score emerge again as key features through our classification algorithms.
+Initial data analysis suggested that we had a full dataset with no missing values. As *Diagnosis* is our classification variable, we conducted our initial analysis around it. In figure 1, we can see how the dataset is imbalanced towards patients diagnosed with **No Alzheimers**. We will share later how the imbalance in the data will be addressed in our classification performance evaluation. 
+Through a Pearson correlation matrix, in figure 2, we also observed that the features have negligible colinearility between them.
+Finally, to observe the distribution of the diagnosis for each feature, we explored a violin plot in figure 3, that suggested a normal distribution for most of features - except for MMSE, Functional Assessment and ADL. 
 
 
 ##### Figure 1. Percentage of frequencies in each class
@@ -299,6 +299,8 @@ ggcorrplot(numeric_cor_matrix,
            insig = "blank",  # Mark non-significant correlations
            pch = 1,  # Symbol for non-significant
            colors = c("#E09F3E", "#E3DED1", "#335C67"))
+
+
 ```
 
 ##### Figure 3. Numeric predictor variables by diagnosis
