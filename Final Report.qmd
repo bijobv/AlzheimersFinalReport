@@ -237,6 +237,8 @@ kable(data, format = "html") %>%
   row_spec(0, extra_css = "font-size: 11px;")  # Font size for headers (row 0)
 ```
 
+Based on our dataset visualization using **Violin Plots** (see **Fig x**), no outliers or anomalous values due to measurement errors, data entry errors, or rare events were detected. Identifying and managing such outliers is crucial, as they could skew model performance if the model learns from extreme values, potentially hindering its ability to generalize effectively
+
 To prepare the dataset for training and testing, the raw data was transformed into a consistent format and saved as an RDS file. All features were converted to numeric values and standardized to have a mean of 0 and a standard deviation of 1. The target variable was converted into a factor with two levels: 'Alzheimer' and 'No Alzheimer'. This standardization ensures that all four classifiers use the same dataset for training, testing, and performance evaluation. Feature engineering details are discussed further in this report.
 
 
