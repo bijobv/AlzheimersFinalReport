@@ -1,6 +1,6 @@
 ---
-title: "Final Report"
-author: "Bijo Varghese, Hong Fu, Jessica Kentwell"
+title: "Alzheimer's Project Report"
+author: "Bijo Varghese, Hong Fu and Jessica Kentwell"
 date: "`r format(Sys.Date(), '%B %d, %Y')`" # current date using r 
 format:
     html:
@@ -37,8 +37,6 @@ modelcv <- trainControl(
 )
 ```
 
-
-
 ```{r lasso, echo=FALSE, message=FALSE, warning=FALSE}
 ##Lasso Regression Model
 
@@ -64,8 +62,6 @@ lasso_CM_2 <- confusionMatrix(lasso_predictions_2, test_data$Diagnosis, positive
 
 ```
 
-
-
 ```{r knn, warning=TRUE, echo=FALSE, message=FALSE}
 ##kNN Model
 
@@ -88,9 +84,6 @@ knn_preds_2 <- factor(knn_preds_2, levels = c("No_Alzheimers", "Alzheimers"))
 knn_CM_2 <- confusionMatrix(knn_preds_2, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
 ```
 
-
-
-
 ```{r lda, warning=FALSE, echo=FALSE}
 ## LDA Model
 
@@ -111,9 +104,6 @@ lda_predictions_2 <- ifelse(lda_prob_predictions$Alzheimers >= new_prob, "Alzhei
 lda_predictions_2 <- factor(lda_predictions_2, levels = levels(test_data$Diagnosis))
 lda_CM_2 <- confusionMatrix(lda_predictions_2, test_data$Diagnosis, positive = "Alzheimers", mode = "everything")
 ```
-
-
-
 
 ```{r rfB, message=FALSE, echo=FALSE, warning=FALSE}
 ## Random Forest
@@ -161,10 +151,9 @@ rfplot <- ggplot(perf_measures_long, aes(x = factor(ntrees), y = Value, fill = M
             vjust = -0.5, 
             size = 2.5) +
   labs(x = "Number of Trees", y = "Value") +
-  scale_fill_manual(values = c("#E09F3E", "#335C67", "#99A88C", "#E3DED1")) + 
+  scale_fill_manual(values = c("#E09F3E", "#335C67", "#E3DED1", "#99A88C")) + 
   theme_minimal()
 ```
-
 
 ```{r foresttable, echo=FALSE, message=FALSE, eval=FALSE}
 #Performance by number of trees
@@ -172,6 +161,7 @@ kable(perf_measures_df, format = "html", digits = 2) %>%
   kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
+<br>
 
 ## Overview of the Problem
 
@@ -183,13 +173,17 @@ Our primary goal in this business case is to develop an accurate predictive mode
 
 The ability to identify, detect and prevent, is crucial to sustain growing aging population in our societies. We believe our model can be the foundation to help people with early detection and intervention, and for governments to reduce the cost burden on Medicare.
 
+<br>
+
 ## Alzheimer's Disease Dataset
 
 We selected a dataset from Kaggle.com to develop our predictive model. This dataset is highly comprehensive and contains synthetic data, offering extensive health information for **`r nrow(alzdata)`** patients, each uniquely identified with IDs ranging from 4751 to 6900. The dataset includes demographic details, lifestyle factors, medical history, clinical measurements, cognitive and functional assessments, symptoms, and a diagnosis of Alzheimer's Disease.
 
-With this richness in features, we have many variables to consider for our model. Notably, 65% of the patients are diagnosed as not having Alzheimer’s disease, while 35% are classified as having the disease. This dataset is ideal for researchers and data scientists aiming to explore factors associated with Alzheimer's, develop predictive models, and perform in-depth statistical analyses.
+With this richness in features, we have many variables to consider for our model. Notably, 65% of the patients are diagnosed as not having Alzheimer’s disease, while 35% are classified as having the disease. This dataset is ideal for researchers and data scientists aiming to explore factors associated with Alzheimer's, develop predictive models, and perform in-depth statistical analyses. The table below provides a breakdown of these variables in its raw form.
 
-The table below provides a breakdown of these variables in its raw form.
+<br>
+
+##### Table 1. Feature description and data type or Alzheimer's dataset
 
 ```{r, data_description, fold: true, echo=FALSE, message=FALSE}
 
@@ -202,11 +196,15 @@ kable(data, format = "html") %>%
   row_spec(0, extra_css = "font-size: 11px;")  # Font size for headers (row 0)
 ```
 
+<br>
+
 ## Initial Data Analysis
 
-Initial data analysis suggested that we had a full dataset with no missing values. As **Diagnosis** is our classification variable, we conducted our initial analysis around it. 
+Initial data analysis suggested that we had a full dataset with no missing values. As **Diagnosis** is our classification variable, we conducted our initial analysis around it.
 
 In Figure 1, we can see how the dataset is imbalanced towards patients diagnosed with *No Alzheimers*. We will share later how the imbalance in the data will be addressed in our classification performance evaluation. Through a Pearson correlation matrix, in Figure 2, we also observed that the features have negligible collinearity between them. Finally, to observe the distribution of the diagnosis for each feature, we explored a violin plot in Figure 3, that suggested a normal distribution for most of features - except for MMSE, Functional Assessment and ADL. Figure 3 also illustrates that there are no obvious outliers or anomalous values due to measurement errors, data entry errors, or rare events were detected. Identifying and managing such outliers is crucial, as they could skew model performance if the model learns from extreme values, potentially hindering its ability to generalize effectively.
+
+<br>
 
 ::: {layout-ncol="2"}
 ##### Figure 1. Percentage of frequencies in each class
@@ -225,7 +223,7 @@ imbalance_barplot <- barplot(diagnosis_proportions * 100,
   cex.axis = 1,
   cex.lab = 1,
   width = 0.5,
-  space = 0.1,
+  space = 0.2,
   names.arg = c("No Alzheimers", "Alzheimer's")
 )
 
@@ -253,7 +251,7 @@ ggcorrplot(numeric_cor_matrix,
            type = "lower", 
            lab = TRUE,  # Show correlation values
            lab_size = 0, 
-           tl.cex = 9,  # Text label size
+           tl.cex = 10,  # Text label size
            tl.col = "black",
            p.mat = numeric_p_matrix, 
            sig.level = 0.05,  # Significance level for p-values
@@ -286,27 +284,42 @@ ggplot(numeric_vars_long, aes(x = Diagnosis, y = value, fill = Diagnosis)) +
     legend.position = "right")
 ```
 
+<br>
+
 ## Feature Engineering
 
 To prepare the dataset for training and testing, the raw data was transformed into a consistent format and saved as an RDS file. All features were converted to numeric values and standardized to have a mean of 0 and a standard deviation of 1. The target variable was converted into a factor with two levels: 'Alzheimer' and 'No Alzheimer'. This standardization ensures that all four classifiers use the same dataset for training, testing, and performance evaluation. Feature engineering details are discussed further in this report. The predictor variables "EducationLevel" and "Ethnicity" were dummy encoded to maintain the conversion to a numeric format. This is especially important for models like kNN, LDA and Lasso that require a numeric format.
 
 *We didn't alter any of the features....Kept all the key features given the medical nature of the problem.*
 
+<br>
+
 ## Classification Algorithms used
 
 We decided to utilise 4 models - random forest (RF), logistic regression with Lasso regularisation (Lasso), linear discriminant analysis (LDA) and k-nearest neighbours (kNN) to help us solve our classification problem, each with it's own unique strengths. *brief description about each one here*.
 
-To ensure generalisation of our chosen models to the test data, we used 10-fold cross-validation with 10 repeats. We implemented this by using a common trainControl object (from caret) that used a grid search for the hyperparameter tuning grid. This allows us to compare fairly our models performance as the cross-validation folds have remained consistent. We initially set our tuneLength = 10 to let caret generate the hyperparameter settings. To determine the variability anad consistency of our models on the cross validated folds, we used the resamples function to visualise and compare their performance.
+To ensure generalisation of our chosen models to the test data, we used 10-fold cross-validation with 10 repeats. We implemented this by using a common trainControl object (from caret) that used a grid search for the hyperparameter tuning grid. This allows us to compare fairly our models performance as the cross-validation folds have remained consistent. We initially set our tuneLength = 10 to let caret generate the hyperparameter settings. To determine the variability and consistency of our models on the cross validated folds, we used the resamples function to visualise and compare their performance.
 
-Each model had it's own hyperparameters to tune. **Lasso Model** For the Lasso model, we optimize the lambda parameter to control the regularization strength. High lambda values lead to simpler models by shrinking coefficients to zero, while low values retain more predictors. We use cross-validation with different lambda values to find the best balance between bias and variance. To automate this process, we perform a grid search across a range of 10 lambda values (0.001 to 0.1) to identify the optimal choice. Since Lasso is sensitive to feature scales, standardizing the data is essential. Finally, we refit the model on the full training set using the chosen lambda for final predictions. This approach ensures a well-regularized, generalized model suited to the task.
+Each model was tuned with bespoke hyperparameters.
 
-For the Lasso model, we need to optimise the lambda parameter. High lambda values lead to simpler models by shrinking coefficients to zero, while low values retain more predictors. We use cross-validation with different lambda values to find the best balance between bias and variance. The alpha hyperparameter was set to 1 which means a total Lasso. - **Random Forest**: We also trained and tested a decision tree model to inspect the region where a patient belongs and predict the most commonly occurring class in that region. To improve these predictions, we extended the tree to a Random Forest by training our model on an ensemble of trees - 1, 50, 100, 250 and 500. To further tune the model, we also trained the model on various mtry parameters - 1, 6, 11, 16, 21, 26, 31 and 36, to find the best m predictors at each split. - **kNN**: k. **LDA**: No hyperparameter tuning required.
+-   **Lasso Model**: For the Lasso model, we optimize the lambda parameter to control the regularization strength. High lambda values lead to simpler models by shrinking coefficients to zero, while low values retain more predictors. We use cross-validation with different lambda values to find the best balance between bias and variance. To automate this process, we perform a grid search across a range of 10 lambda values (0.001 to 0.1) to identify the optimal choice. Since Lasso is sensitive to feature scales, standardizing the data is essential. Finally, we refit the model on the full training set using the chosen lambda for final predictions. This approach ensures a well-regularized, generalized model suited to the task.\
+    For the Lasso model, we need to optimise the lambda parameter. High lambda values lead to simpler models by shrinking coefficients to zero, while low values retain more predictors. We use cross-validation with different lambda values to find the best balance between bias and variance. The alpha hyperparameter was set to 1 which means a total Lasso.
+    
+-   **Random Forest**: We also trained and tested a decision tree model to inspect the region where a patient belongs and predict the most commonly occurring class in that region. To improve these predictions, we extended the tree to a Random Forest by training our model on an ensemble of trees - 1, 50, 100, 250 and 500. To further tune the model, we also trained the model on various mtry parameters - 1, 6, 11, 16, 21, 26, 31 and 36, to find the best m predictors at each split.
+
+-   **kNN**: k.
+
+-   **LDA**: No hyperparameter tuning required.
+
+<br>
 
 ## Classification Performance Evaluation
 
 In order to evaluate the performance of our models, we utilised a variety of metrics to help us choose the best model. **AUC** (Area Under the ROC Curve) It measures a model’s ability to differentiate between classes, if the value if high, it means it has high classification power. **Recall/Sensitivity** (True Positive Rate): It indicates what percentage of actual positive cases had been correctly identified by the model. For our problem, it is the measure of how well the model is able to classify patients with Alzheimer's disease. A Recall score of 1.0 represents a perfect classifier; lower values represent more false negatives e.g., misclassifying an Alzheimer's patient as being other than one (non-Alzheimer's) **Precision** (Positive Predictive Value): The proportion of positive predictions that are correctly classified with denote. Lower Precision raises the false positives rate — incorrectly identifying a person without Alzheimer’s as having Alzheimer’s. **F1 score**: Mean of precision and recall.
 
 We trained our models to the specifications described. On the cross-validation folds (across 100 samples) our rf model consistently outperformed the other 3 models on all metrics (see Appendix) across the majority of folds. Figure 4 also emphasises this finding also allowing us to visualise that rf had the smallest variability of scores out of all models, which on resamples output, indicates the model is not overfitting. The second best performer overall was more difficult to determine, as the mean Recall for KNN (was higher than the Recall for LDA and Lasso. However the significant drop in precision, as well as the lower AUC, suggest relying purely on Recall is not ideal.
+
+<br>
 
 ##### Figure 4. Model performance on training data
 
@@ -340,27 +353,31 @@ bwplot(
 
 To evaluate the models performance on the test data, we examined the confusion matrices and the ROC and Precision-Recall curves for each of the models. The results can be summarised in Table 3 and Figure 5. Similarly to the results on the cross validation folds, the RF model outperforms the 3 other models across all metrics. It has excellent Recall and also Precision, which minimises both false negatives and false positives. kNN shows the lowest recall, suggesting it struggles to identify the Alzheimer's cases which results in a high number of false negatives. Lasso shows average performance across all metrics.
 
+<br>
+
+::: {layout-ncol="2"}
 ##### Figure 5. Model performance on test data
 
-```{r CPE2, echo=FALSE, warning=FALSE, message=FALSE}
+```{r CPE2, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5, fig.width=5}
 CM_allmodels <- data.frame(
   Model = c("Lasso", "kNN", "LDA", "RF"),
   Accuracy = c(0.70, 0.76, 0.83, 0.95),
   Recall = c(0.70, 0.44, 0.74, 0.91),
   Precision = c(0.82, 0.79, 0.77, 0.95),
-  F1_Score = c(0.76, 0.57, 0.76, 0.93),
+  F1 = c(0.76, 0.57, 0.76, 0.93),
   stringsAsFactors = FALSE
 )
 
 CM_long <- CM_allmodels %>%
   pivot_longer(
-    cols = c("Accuracy", "Recall", "Precision", "F1_Score"),
+    cols = c("Accuracy", "Recall", "Precision", "F1"),
     names_to = "Metric",
     values_to = "Value"
   )
 
 ggplot(CM_long, aes(x = Model, y = Value, fill = Model)) +
   geom_bar(stat = "identity") +
+  geom_text(aes(label = round(Value, 2)), vjust = -0.7, size = 3) +
   facet_wrap(~ Metric, ncol = 2) +
   labs(title = NULL, y = "Value") +
   theme_minimal() +
@@ -369,49 +386,72 @@ ggplot(CM_long, aes(x = Model, y = Value, fill = Model)) +
     plot.title = element_text(hjust = 0.5, face = "bold"),
     strip.text = element_text(face = "bold")
   ) +
-  scale_fill_manual(values = c("#E09F3E", "#335C67", "#99A88C", "#E3DED1"))
+  scale_fill_manual(values = c("#E09F3E", "#335C67", "#E3DED1", "#99A88C")) +
+  scale_y_continuous(limits = c(0, 1))
 
 
 ```
 
-##### Figure 5. Model performance across all probability thresholds, using ROC
+##### Figure 6. Model performance across all probability thresholds
 
-```{r CPE3, echo=FALSE, warning=FALSE, message=FALSE}
+```{r CPE3, echo=FALSE, warning=FALSE, message=FALSE, fig.height=6, fig.width=6}
 predict_rf2 <- predict(rf_model2, newdata = test_data, type = "prob")
 rf_probs <- predict_rf2[, "Alzheimers"]
 
 true_labels <- ifelse(test_data$Diagnosis == "Alzheimers", 1, 0)
 models_probs_list <- list(
-  "KNN" = knn_probs,
-  "LDA" = lda_probs,
+  "kNN" = knn_probs,
   "Lasso" = lasso_probs,
+  "LDA" = lda_probs,
   "Random Forest" = rf_probs
 )
 
-name_list <- c("KNN", "LDA", "Lasso", "RF")
+name_list <- c("kNN", "Lasso", "LDA", "RF")
 mmdata <- mmdata(scores = models_probs_list, labels = true_labels, modnames = name_list)
 mmprecrec <- evalmod(mmdata)
-plot(mmprecrec, curvetype = "ROC", main = "ROC Curves for KNN, LDA, Lasso and RF models")
+custom_colors <- c("#E09F3E", "#335C67", "#E3DED1", "#99A88C")
+autoplot(mmprecrec, curvetype = "ROC", type = "l") +
+  scale_color_manual(values = custom_colors) +
+  theme_minimal() +
+  labs(
+    x = "Specificity",       
+    y = "Sensitivity",        
+    color = "Model",                 
+    title = NULL                    
+  ) +
+  theme(
+    axis.title = element_text(size = 10, face = "bold"),      
+    legend.title = element_text(size = 10, face = "bold"),    
+    legend.position = "right"                                 
+  )
 
 ```
+:::
 
 Results Methods used and results obtained.
 
 Clearly described the model comparison and the final selected model based on the proposed evaluation strategies. Correctly evaluate the different classification models, more than 1 metric.
 
+<br>
+
 ## Conclusion
 
-The best model 
+The best model
 
-Why RF performed better. 
+Why RF performed better.
 
 Limitations: synthetic data, etc
 
-Future research
-  Data - ensemble methods
+Future research Data - ensemble methods
 
-  Medical - test on real patient data, consult with clinical experts. 
-  
-  
-Appendix
-  
+Medical - test on real patient data, consult with clinical experts.
+
+<br>
+
+## Appendix
+
+##### Figure 7. Random forest Model performance across ensemble of trees tested
+
+```{r echo=FALSE}
+print(rfplot)
+```
