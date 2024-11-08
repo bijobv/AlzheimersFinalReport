@@ -7,11 +7,12 @@ format:
         embed-resources: true
         page-layout: full
 editor: visual
+css: styles.css
 ---
 
 ```{r setup, echo=FALSE}
 if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman"); library(pacman)
-pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, dplyr, knitr, kableExtra, MASS, RColorBrewer, caTools, MLmetrics, lattice, psych, ggcorrplot, readr, tidyr)
+pacman::p_load(tidyverse, caret, ranger, tree, glmnet, ISLR, ggplot2, Matrix, dplyr, knitr, kableExtra, MASS, RColorBrewer, caTools, MLmetrics, lattice, psych, ggcorrplot, readr, tidyr, ROCR, ROCit)
 
 
 # read the cleaned Alzheimers dataset 
@@ -111,8 +112,6 @@ lda_model <- train(
 )
 ```
 
-
-
 ```{r lda_predict_2, echo=FALSE, message=FALSE}
 lda_prob_predictions <- predict(lda_model, newdata = test_data, type = "prob")
 #new threshold
@@ -131,7 +130,7 @@ max.ntree_seq <- max(ntree_seq)
 mtry_values <- seq(1, ncol(train_data) - 1, by = 5)
 test_diagnosis <- test_data[["Diagnosis"]]
 
-rand.forest.function <- function(x) { 
+#rand.forest.function <- function(x) { 
   
   rf_model <- train(
   Diagnosis ~ .,              
@@ -140,7 +139,7 @@ rand.forest.function <- function(x) {
   trControl = modelcv,
   tuneLength = 10,
   tuneGrid = expand.grid(.mtry = mtry_values), 
-  ntree = x
+ # ntree = x
   )
   
   rf_probs <- predict(rf_model, newdata = test_data, type = "prob")[, "Alzheimers"]
@@ -173,30 +172,30 @@ ggplot(plot_data, aes(x = ntree_seq, y = sensitivities)) +
   theme_minimal()
 
 
-perf_measures_df <- bind_rows(perf_measures)
+#perf_measures_df <- bind_rows(perf_measures)
 
-perf_measures_long <- perf_measures_df %>%
-  pivot_longer(cols = c(Sensitivity, Specificity, Accuracy, F1),
-               names_to = "Measure",
-               values_to = "Value")
+#perf_measures_long <- perf_measures_df %>%
+ # pivot_longer(cols = c(Sensitivity, Specificity, Accuracy, F1),
+#               names_to = "Measure",
+ #              values_to = "Value")
 
-ggplot(perf_measures_long, aes(x = factor(ntrees), y = Value, fill = Measure)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  geom_text(aes(label = sprintf("%.2f", Value)), 
-            position = position_dodge(width = 0.8), 
-            vjust = -0.5, 
-            size = 2.5) +
-  labs(x = "Number of Trees", y = "Value") +
-  scale_fill_manual(values = c("#E09F3E", "#335C67", "#99A88C", "#E3DED1")) + 
-  theme_minimal()
+#ggplot(perf_measures_long, aes(x = factor(ntrees), y = Value, fill = Measure)) +
+  #geom_bar(stat = "identity", position = "dodge") +
+ # geom_text(aes(label = sprintf("%.2f", Value)), 
+  #          position = position_dodge(width = 0.8), 
+ #           vjust = -0.5, 
+ #           size = 2.5) +
+#  labs(x = "Number of Trees", y = "Value") +
+#  scale_fill_manual(values = c("#E09F3E", "#335C67", "#99A88C", "#E3DED1")) + 
+#  theme_minimal()
 
 ```
 
 **Performance by number of trees**
 
 ```{r foresttable, echo=FALSE, message=FALSE}
-kable(perf_measures_df, format = "html", digits = 2) %>%
-  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
+#kable(perf_measures_df, format = "html", digits = 2) %>%
+#  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
 ### 
@@ -222,12 +221,12 @@ The table below provides a breakdown of these variables in its raw form.
 ```{r, data_description, fold: true, echo=FALSE, message=FALSE}
 
 # Read the CSV file into a dataframe
-data <- read_csv("dataset_description.csv", show_col_types = FALSE)
+#data <- read_csv("dataset_description.csv", show_col_types = FALSE)
 
-kable(data, format = "html") %>%
-  kable_styling() %>%
-  column_spec(1:ncol(data), extra_css = "font-size: 11px;") %>%  # Font size for table body
-  row_spec(0, extra_css = "font-size: 11px;")  # Font size for headers (row 0)
+#kable(data, format = "html") %>%
+#  kable_styling() %>%
+#  column_spec(1:ncol(data), extra_css = "font-size: 11px;") %>%  # Font size for table body
+ # row_spec(0, extra_css = "font-size: 11px;")  # Font size for headers (row 0)
 ```
 
 ### Initial Data Analysis / Visualisation of the data - Bijo
@@ -314,7 +313,7 @@ ggplot(numeric_vars_long, aes(x = Diagnosis, y = value, fill = Diagnosis)) +
 
 To prepare the dataset for training and testing, the raw data was transformed into a consistent format and saved as an RDS file. All features were converted to numeric values and standardized to have a mean of 0 and a standard deviation of 1. The target variable was converted into a factor with two levels: 'Alzheimer' and 'No Alzheimer'. This standardization ensures that all four classifiers use the same dataset for training, testing, and performance evaluation. Feature engineering details are discussed further in this report. The predictor variables "EducationLevel" and "Ethnicity" were dummy encoded to maintain the conversion to a numeric format. This is especially important for models like kNN, LDA and Lasso that require a numeric format.
 
-*We didn't alter any of the features....Kept all the key features given the medical nature of the problem.*
+Our dataset had some class imbalance, with 65% of patients not having Alzheimer's and 35% with Alzheimer's disease. Class imbalance can adversely impact model performance when it comes to predicting the minority class (ref). To lessen this impact, we adjusted the default probability threshold from 0.5 to 0.35 for classifying a patient as having Alzheimer's disease.
 
 ### Classification Algorithms used - All
 
@@ -330,8 +329,7 @@ For the Lasso model, we need to optimise the lambda parameter. High lambda value
 
 In order to evaluate the performance of our models, we utilised a variety of metrics to help us choose the best model. **AUC** (Area Under the ROC Curve) It measures a model’s ability to differentiate between classes, if the value if high, it means it has high classification power. **Recall/Sensitivity** (True Positive Rate): It indicates what percentage of actual positive cases had been correctly identified by the model. For our problem, it is the measure of how well the model is able to classify patients with Alzheimer's disease. A Recall score of 1.0 represents a perfect classifier; lower values represent more false negatives e.g., misclassifying an Alzheimer's patient as being other than one (non-Alzheimer's) **Precision** (Positive Predictive Value): The proportion of positive predictions that are correctly classified with denote. Lower Precision raises the false positives rate — incorrectly identifying a person without Alzheimer’s as having Alzheimer’s. **F1 score**: Mean of precision and recall.
 
-We trained our models to the specifications described. On the cross-validation folds (across 100 samples) our rf model consistently outperformed the other 3 models on all metrics (see Appendix) across the majority of folds. Figure 4 also emphasises this finding also allowing us to visualise that rf had the smallest variability of scores out of all models, which on resamples output, indicates the model is not overfitting. The second best performer overall was more difficult to determine, as the mean Recall for KNN (was higher than the Recall for LDA and Lasso. However the significant drop in precision, as well as the lower AUC, suggest relying purely on Recall is not ideal.
-
+Our cross-validation results across 100 samples demonstrate that RF is the top-performing model, with the highest AUC (0.94), Precision, Recall and F1 scores. LDA and Lasso models showed similar performances (mean AUC 0.92 for both), and kNN had the lowest mean AUC (0.85) as well as all other metrics. These results can be summarised in Figure 4, which also illustrates that the rf model has the lowest score variability out of all models, which indicates the model is not overfitting on the training data (ref).
 
 ```{r}
 resamples_results <- resamples(list(KNN = knn_model, LDA = lda_model, RF = rf_model, Lasso = lasso_model))
@@ -342,10 +340,18 @@ bwplot(resamples_results, metric = c("Recall", "F1", "AUC", "Precision"))
 
 ```
 
-To evaluate the models performance on the test data, we examined the confusion matrices and the ROC and Precision-Recall curves for each of the models. The results can be summarised in Table 3 and Figure 5. Similarly to the results on the cross validation folds, the RF model outperforms the 3 other models across all metrics. It has excellent Recall and also Precision, which minimises both false negatives and false positives. kNN shows the lowest recall, suggesting it struggles to identify the Alzheimer's cases which results in a high number of false negatives. Lasso shows average performance across all metrics.
+To evaluate the models performance on the test data, we examined the confusion matrices and the ROC and Precision-Recall curves for each of the models. The results can be summarised in Table 3 and Figure 5. Similarly to the results on the cross validation folds, the RF model outperforms the 3 other models across all metrics. The RF model correctly identified 212 patients with Alzheimer's disease, and 396 without the disease. 16 patients without Alzheimer's were incorrectly classified as having it, and 20 patients with Alzheimer's disease were missed by the model. The high Recall/Sensitivity () indicates the RF model is excellent at identifying and detecting Alzheimer's disease patients. High Precision also means that those who were identified by our model as having the disease really do have it, minimising false positives. The F1 score is also high, showing a good balance between Precision and Recall. Furthermore, the model also shows high Specificity, which means it can also correctly identify patients with no Alzheimer's disease.
+
+The LDA model correctly identified 191 patients with Alzheimer's but incorrectly classified 77 patients who didn't have Alzheimer's as having it. The Precision (71.27%) was particuarly low, indicating a higher rate of false positives compared to the RF model. The Recall (83.77%) and Specificty (81.49%) results were acceptable, with the lower F1 score (77.02%) taking into account the lower Precision. This model is therefore less reliable in classification than the RF model.
+
+The Lasso model performs similalry to the LDA model with average performance, but higher Recall/Sensitivity (85.53%), meaning it can detect Alzheimer's patients better compared to the LDA model (it identified 195 patients with Alzheimer's correctly compared to the 191 correctly identified from the LDA model). However, similarly to the LDA model, it has low Precision (70.65%) leading to more false positives. The Lasso model incorrectly identified 81 patients who don't have Alzheimer's as having Alzheimer's.
+
+The KNN model had the lowest performance among all models. The low Precision (60.47%) and F1 score (68.32%) indicates it had a high number of false positives (classifyiing 117 patients with no Alzheimer's as having Alzheimer's).
+
+Comparing the performance of the models can also be confirmed statistically through McNemar's Test, which assesses if there is a significant difference in error rates between models. Low p-values suggest significant difference in performance.
 
 ```{r}
-CM_allmodels <- data.frame(
+CMb4TA <- data.frame(
   Model = c("Lasso", "KNN", "LDA", "RF"),
   Accuracy = c(0.70, 0.76, 0.83, 0.95),
   Recall = c(0.70, 0.44, 0.74, 0.91),
@@ -354,61 +360,169 @@ CM_allmodels <- data.frame(
   stringsAsFactors = FALSE
 )
 
-CM_long <- CM_allmodels %>%
-  pivot_longer(
-    cols = c("Accuracy", "Recall", "Precision", "F1_Score"),
-    names_to = "Metric",
-    values_to = "Value"
-  )
+performance_df <- data.frame(
+  Model = rep(c("Lasso", "kNN", "LDA", "Random Forest"), each = 2),
+  Threshold = rep(c("Before Adjustment", "After Adjustment"), times = 4),
+  Accuracy = c(0.70, 0.76, 0.83, 0.95, 0.82, 0.83, 0.94, 0.95),
+  Recall = c(0.70, 0.44, 0.74, 0.91, 0.84, 0.74, 0.91, 0.91),
+  Precision = c(0.82, 0.79, 0.77, 0.95, 0.71, 0.77, 0.93, 0.95),
+  F1_Score = c(0.76, 0.57, 0.76, 0.93, 0.77, 0.76, 0.92, 0.93),
+  stringsAsFactors = FALSE
+)
 
-ggplot(CM_long, aes(x = Model, y = Value, fill = Model)) +
-  geom_bar(stat = "identity") +
-  facet_wrap(~ Metric, ncol = 2)  +
-  labs(title = "Model Performance Metrics", y = "Value") +
-  theme_minimal() +
-  theme(legend.position = "none",
-        plot.title = element_text(hjust = 0.5, face = "bold"),
-        strip.text = element_text(face = "bold"))
+library(tidyr)
+
+performance_wide <- pivot_wider(
+  performance_df,
+  names_from = Threshold,
+  values_from = c(Accuracy, Recall, Precision, F1_Score)
+)
+library(reactable)
+
+# Create the reactable table
+reactable(
+  performance_wide,
+  columns = list(
+    Model = colDef(name = "Model", align = "left", minWidth = 150),
+    Accuracy_Before_Adjustment = colDef(
+      name = "Accuracy (Before)",
+      align = "center",
+      minWidth = 130,
+      cell = data_bars(performance_wide, fill_color = "#a6cee3")
+    ),
+    Recall_Before_Adjustment = colDef(
+      name = "Recall (Before)",
+      align = "center",
+      minWidth = 130,
+      cell = data_bars(performance_wide, fill_color = "#b2df8a")
+    ),
+    Precision_Before_Adjustment = colDef(
+      name = "Precision (Before)",
+      align = "center",
+      minWidth = 130,
+      cell = data_bars(performance_wide, fill_color = "#fb9a99")
+    ),
+    F1_Score_Before_Adjustment = colDef(
+      name = "F1 Score (Before)",
+      align = "center",
+      minWidth = 130,
+      cell = data_bars(performance_wide, fill_color = "#fdbf6f")
+    ),
+    # Metrics after adjustment
+    Accuracy_After_Adjustment = colDef(
+      name = "Accuracy (After)",
+      align = "center",
+      minWidth = 130,
+      cell = data_bars(performance_wide, fill_color = "#1f78b4")
+    ),
+    Recall_After_Adjustment = colDef(
+      name = "Recall (After)",
+      align = "center",
+      minWidth = 130,
+      cell = data_bars(performance_wide, fill_color = "#33a02c")
+    ),
+    Precision_After_Adjustment = colDef(
+      name = "Precision (After)",
+      align = "center",
+      minWidth = 130,
+      cell = data_bars(performance_wide, fill_color = "#e31a1c")
+    ),
+    F1_Score_After_Adjustment = colDef(
+      name = "F1 Score (After)",
+      align = "center",
+      minWidth = 130,
+      cell = data_bars(performance_wide, fill_color = "#ff7f00")
+    )
+  ),
+  bordered = TRUE,
+  highlight = TRUE,
+  striped = TRUE,
+  defaultColDef = colDef(
+    headerStyle = list(fontWeight = "bold")
+  ),
+  theme = reactableTheme(
+    )
+)
+
+
+
+#CM_long <- CM_allmodels %>%
+#  pivot_longer(
+#    cols = c("Accuracy", "Recall", "Precision", "F1_Score"),
+ #   names_to = "Metric",
+ #   values_to = "Value"
+ # )
+
+#ggplot(CM_long, aes(x = Model, y = Value, fill = Model)) +
+ # geom_bar(stat = "identity") +
+  #facet_wrap(~ Metric, ncol = 2)  +
+ # labs(title = "Model Performance Metrics", y = "Value") +
+ # theme_minimal() +
+ # theme(legend.position = "none",
+   #     plot.title = element_text(hjust = 0.5, face = "bold"),
+    #    strip.text = element_text(face = "bold"))
 
 
 ```
-
-
 
 ```{r}
 library(precrec)
+rf_probs <- predict_rf
+lda_probs <- lda_prob_predictions
+
+rf_probs <- predict(rf_model, newdata = test_data, type = "prob")[, "Alzheimers"]
+lda_probs <- predict(lda_model, newdata = test_data, type = "prob")[, "Alzheimers"]
+knn_probs <- predict(knn_model, newdata = test_data, type = "prob")[, "Alzheimers"]
+lasso_probs <- predict(lasso_model, newdata = test_data, type = "prob")[, "Alzheimers"]
+
 true_labels <- ifelse(test_data$Diagnosis == "Alzheimers", 1, 0)
+
 models_probs_list <- list(
-  "KNN" = knn_probs,
+  "Random Forest" = rf_probs,
   "LDA" = lda_probs,
   "Lasso" = lasso_probs,
-  "Random Forest" = rf_probs
+  "KNN" = knn_probs
 )
 
-name_list <- c("KNN", "LDA", "Lasso", "RF")
-mmdata <- mmdata(scores = models_probs_list, labels = true_labels, modnames = name_list)
-mmprecrec <- evalmod(mmdata)
-plot(mmprecrec, curvetype = "ROC", main = "ROC Curves for KNN, LDA, Lasso and RF models")
+
+mmdata_obj <- mmdata(scores = models_probs_list, labels = true_labels, modnames = names(models_probs_list))
+eval_results <- evalmod(mmdata_obj)
+plot(eval_results, curvetype = "ROC", main = "ROC Curves for KNN, LDA, Lasso and RF models")
+plot(eval_results, curvetype = "PRC", main = "Precision-Recall Curves for All Models")
+
+auc_values <- auc(eval_results)
+print(auc_values)
+```
+
+The RF model also shows superior performance when analysing the ROC curves for the models. This is demonstrated by the curve being closest to the top left corner, which represents perfect classiifcation (Sensitivity = 1).
+
+#### Feature Importance
+
+```{r}
+rf_var_imp <- varImp(rf_model)
+
+plot(rf_var_imp, top = 10, main = "Top 10 Important Features from RF Model")
 
 ```
 
-Results Methods used and results obtained.
+The top features extracted from the RF model include Functional Assessment and ADL scores. These features are neurocognitive assessments performed by a clinician and help measure cognitive function and daily living abilities. These are directly related to Alzheimer's disease. The RF model suggesting these features are important in our model is consistent with medical understanding about Alzheimer's.
 
-Clearly described the model comparison and the final selected model based on the proposed evaluation strategies. Correctly evaluate the different classification models, more than 1 metric.
+## Discussion
+
+###### Threshold adjustment
+
+Adjusting our probability threshold to 0.35 (compared to 0.5) was due to our class imbalance, with only 35% of our positive class (Alzheimer's disease) being represented in the data. Analysing the impact on the results compared to when we didn't adjust the threshold (Table 3), we can see that the adjustment improved the Sensitivity/Recall across all of our models. However, it also appears to have increased the false positive rate (lower Precision) at the same time. In the context of our classification problem, we believe that identifying more actual Alzheimer's patients correctly outweighs the cost of a false positive. Early detection is vital in treating and managing Alzheimer's disease.
 
 ### Conclusion - Bijo Varghese
 
-The best model 
+The best model
 
-Why RF performed better. 
+Why RF performed better.
 
 Limitations: synthetic data, etc
 
-Future research
-  Data - ensemble methods
+Future research Data - ensemble methods
 
-  Medical - test on real patient data, consult with clinical experts. 
-  
-  
+Medical - test on real patient data, consult with clinical experts.
+
 Appendix
-  
