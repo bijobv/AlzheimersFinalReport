@@ -165,11 +165,11 @@ kable(perf_measures_df, format = "html", digits = 2) %>%
 
 ## Overview of the Problem
 
-It is estimated that 30% of older adults aged 60 and above die from Alzheimer's disease, a common and progressive neurodegenerative disorder that primarily affects memory, thinking, and behavior. Alzheimer's is the leading cause of dementia, a term used to describe severe cognitive decline that interferes with daily life. The exact cause of Alzheimer’s is not fully understood, as it involves a complex interaction of genetic, environmental, and lifestyle factors. Typically, Alzheimer's begins with mild memory loss, especially affecting recent memories, but it progressively worsens, leading to more severe symptoms such as confusion, language difficulties, impaired problem-solving, mood swings, personality changes, and challenges with daily tasks.
+It is estimated that 30% of older adults aged 60 and above die from Alzheimer's disease, a common and progressive neurodegenerative disorder that primarily affects memory, thinking, and behavior. Alzheimer's is the leading cause of dementia, a term used to describe severe cognitive decline that interferes with daily life. So far the exact cause of Alzheimer’s is not fully understood, as it involves a complex interaction of genetic, environmental, and lifestyle factors. Typically, Alzheimer's begins with mild memory loss, especially affecting recent memories, but it progressively worsens, leading to more severe symptoms such as confusion, language difficulties, impaired problem-solving, mood swings, personality changes, and challenges with daily tasks.
 
 One of the critical issues with Alzheimer's is the lack of a definitive diagnostic test; diagnosis is currently based on clinical history and observed symptoms. Early detection is essential, yet without a conclusive diagnostic method, it remains challenging. To address this, it is vital to develop an effective diagnostic approach that can identify early symptoms using readily accessible patient data and medical histories.
 
-Our primary goal in this business case is to develop an accurate predictive model capable of classifying individuals as having or not having Alzheimer’s based on clinical patient data. Additionally, we aim to identify the specific factors or combinations of factors that can reliably aid in predicting Alzheimer’s disease. Lastly, we will address challenges related to the available dataset to improve the data-capturing process, enhancing the quality and robustness of future datasets.
+Our primary goal in this business case is **to develop a right-sized predictive model with adequate performance** capable of classifying individuals as having or not having Alzheimer’s based on clinical patient data. Additionally, we aim to identify the specific factors or combinations of factors that can reliably aid in predicting Alzheimer’s disease. Lastly, we will address challenges related to the chosen dataset to improve the quality of our model.
 
 The ability to identify, detect and prevent, is crucial to sustain growing aging population in our societies. We believe our model can be the foundation to help people with early detection and intervention, and for governments to reduce the cost burden on Medicare.
 
@@ -177,13 +177,13 @@ The ability to identify, detect and prevent, is crucial to sustain growing aging
 
 ## Alzheimer's Disease Dataset
 
-We selected a dataset from Kaggle.com to develop our predictive model. This dataset is highly comprehensive and contains synthetic data, offering extensive health information for **`r nrow(alzdata)`** patients, each uniquely identified with IDs ranging from 4751 to 6900. The dataset includes demographic details, lifestyle factors, medical history, clinical measurements, cognitive and functional assessments, symptoms, and a diagnosis of Alzheimer's Disease.
+We selected a dataset from Kaggle to develop our predictive model. This dataset is highly comprehensive and contains synthetic data, offering extensive health information for **`r nrow(alzdata)`** patients. The dataset includes demographic details, lifestyle factors, medical history, clinical measurements, cognitive and functional assessments, symptoms, and a binary diagnosis of Alzheimer's Disease - total of **`r ncol(alzdata)-1`** features.
 
-With this richness in features, we have many variables to consider for our model. Notably, 65% of the patients are diagnosed as not having Alzheimer’s disease, while 35% are classified as having the disease. This dataset is ideal for researchers and data scientists aiming to explore factors associated with Alzheimer's, develop predictive models, and perform in-depth statistical analyses. The table below provides a breakdown of these variables in its raw form.
+With the richness in features, we have many variables to consider for our model. The chosen dataset is primed for researchers and data scientists aiming to explore factors associated with Alzheimer's, develop predictive models, and perform in-depth statistical analyses. In our model we used all the features train and test our model. The table below provides a breakdown of these features in its raw form, with Patient and Doctor ID removed.
 
 <br>
 
-##### Table 1. Feature description and data type or Alzheimer's dataset
+##### Table 1. Feature description and data type for Alzheimer's disease dataset
 
 ```{r, data_description, fold: true, echo=FALSE, message=FALSE}
 
@@ -200,9 +200,9 @@ kable(data, format = "html") %>%
 
 ## Initial Data Analysis
 
-Initial data analysis suggested that we had a full dataset with no missing values. As **Diagnosis** is our classification variable, we conducted our initial analysis around it.
+Our initial data analysis suggested that we had a complete dataset with no missing values. As the **Diagnosis** variable is our classification label, we conducted our initial analysis around it.
 
-In Figure 1, we can see how the dataset is imbalanced towards patients diagnosed with *No Alzheimers*. We will share later how the imbalance in the data will be addressed in our classification performance evaluation. Through a Pearson correlation matrix, in Figure 2, we also observed that the features have negligible collinearity between them. Finally, to observe the distribution of the diagnosis for each feature, we explored a violin plot in Figure 3, that suggested a normal distribution for most of features - except for MMSE, Functional Assessment and ADL. Figure 3 also illustrates that there are no obvious outliers or anomalous values due to measurement errors, data entry errors, or rare events were detected. Identifying and managing such outliers is crucial, as they could skew model performance if the model learns from extreme values, potentially hindering its ability to generalize effectively.
+In Figure 1, we can see how the dataset is imbalanced towards patients diagnosed with *No Alzheimers*. Due to notable imbalance in the dataset, we adjusted our classification performance evaluation accordingly, which we'll share later in the report. To further understand the relationship between the various numeric features, we also constructed a Pearson correlation matrix. Through Figure 2, we established that the features have negligible collinearity. Finally, to observe the distribution of the diagnosis for each feature, we explored a violin plot in Figure 3, that suggested a normal distribution for most of features - except for MMSE, Functional Assessment and ADL. Figure 3 also illustrates that there are no obvious outliers or anomalous values due to measurement errors, data entry errors, or rare events were detected. Identifying and managing such outliers is crucial, as they could skew model performance if the model learns from extreme values, potentially hindering its ability to generalize effectively.
 
 <br>
 
@@ -288,7 +288,7 @@ ggplot(numeric_vars_long, aes(x = Diagnosis, y = value, fill = Diagnosis)) +
 
 ## Feature Engineering
 
-To prepare the dataset for training and testing, the raw data was transformed into a consistent format and saved as an RDS file. All features were converted to numeric values and standardized to have a mean of 0 and a standard deviation of 1. The target variable was converted into a factor with two levels: 'Alzheimer' and 'No Alzheimer'. This standardization ensures that all four classifiers use the same dataset for training, testing, and performance evaluation. Feature engineering details are discussed further in this report. The predictor variables "EducationLevel" and "Ethnicity" were dummy encoded to maintain the conversion to a numeric format. This is especially important for models like kNN, LDA and Lasso that require a numeric format.
+To prepare the dataset for training and testing, the raw data was transformed into a consistent format and saved as an RDS file. All features were converted to numeric values and standardized to have a mean of 0 and a standard deviation of 1. The target variable was converted into a factor with two levels: 'Alzheimer' and 'No Alzheimer'. This standardization ensures that all classifiers use the same dataset for training, testing, and performance evaluation. Other feature engineering techniques are discussed further in this report. It is noteworthy that the predictor variables "EducationLevel" and "Ethnicity" were dummy encoded to maintain the conversion to a numeric format. This is especially important for models like kNN, LDA and Lasso that require a numeric format.
 
 *We didn't alter any of the features....Kept all the key features given the medical nature of the problem.*
 
@@ -296,13 +296,13 @@ To prepare the dataset for training and testing, the raw data was transformed in
 
 ## Classification Algorithms used
 
-We decided to utilise 4 models - random forest (RF), logistic regression with Lasso regularisation (Lasso), linear discriminant analysis (LDA) and k-nearest neighbours (kNN) to help us solve our classification problem, each with it's own unique strengths. *brief description about each one here*.
+To help us solve our classification problem, we chose 4 models - random forest (RF), logistic regression with Lasso regularisation (Lasso), linear discriminant analysis (LDA) and k-nearest neighbours (kNN), each with it's own unique strengths. *brief description about each one here*.
 
-To ensure generalisation of our chosen models to the test data, we used 10-fold cross-validation with 10 repeats. We implemented this by using a common trainControl object (from caret) that used a grid search for the hyperparameter tuning grid. This allows us to compare fairly our models performance as the cross-validation folds have remained consistent. We initially set our tuneLength = 10 to let caret generate the hyperparameter settings. To determine the variability and consistency of our models on the cross validated folds, we used the resamples function to visualise and compare their performance.
+To ensure generalisation of our chosen models to the test data, we used 10-fold cross-validation with 10 repeats. We implemented this by using a common $trainControl$ object (from caret) that used a grid search for the hyperparameter tuning grid. This allows us to compare our model performance fairly as the cross-validation folds have remained consistent. We initially set our tuneLength = 10 to let caret generate the hyperparameter settings. To determine the variability and consistency of our models on the cross validated folds, we used the resamples function to visualise and compare their performance.
 
-Each model was tuned with bespoke hyperparameters.
+For each model, bespoke hyperparameters were used to tune the model.
 
--   **Lasso Model**: For the Lasso model, we optimize the lambda parameter to control the regularization strength. High lambda values lead to simpler models by shrinking coefficients to zero, while low values retain more predictors. We use cross-validation with different lambda values to find the best balance between bias and variance. To automate this process, we perform a grid search across a range of 10 lambda values (0.001 to 0.1) to identify the optimal choice. Since Lasso is sensitive to feature scales, standardizing the data is essential. Finally, we refit the model on the full training set using the chosen lambda for final predictions. This approach ensures a well-regularized, generalized model suited to the task.\
+-   **Lasso Model**: For the Lasso model, we optimized the lambda parameter to control the regularization strength. High lambda values lead to simpler models by shrinking coefficients to zero, while low values retain more predictors. We used cross-validation with different lambda values to find the best balance between bias and variance. To automate this process, we performed a grid search across a range of 10 lambda values (0.001 to 0.1) to identify the optimal choice. Since Lasso is sensitive to feature scales, standardizing the data is essential, -------- . Finally, we refit the model on the full training set using the chosen lambda for final predictions. This approach ensures a well-regularized, generalized model suited to the task.\
     For the Lasso model, we need to optimise the lambda parameter. High lambda values lead to simpler models by shrinking coefficients to zero, while low values retain more predictors. We use cross-validation with different lambda values to find the best balance between bias and variance. The alpha hyperparameter was set to 1 which means a total Lasso.
     
 -   **Random Forest**: We also trained and tested a decision tree model to inspect the region where a patient belongs and predict the most commonly occurring class in that region. To improve these predictions, we extended the tree to a Random Forest by training our model on an ensemble of trees - 1, 50, 100, 250 and 500. To further tune the model, we also trained the model on various mtry parameters - 1, 6, 11, 16, 21, 26, 31 and 36, to find the best m predictors at each split.
@@ -358,7 +358,7 @@ To evaluate the models performance on the test data, we examined the confusion m
 ::: {layout-ncol="2"}
 ##### Figure 5. Model performance on test data
 
-```{r CPE2, echo=FALSE, warning=FALSE, message=FALSE, fig.height=5, fig.width=5}
+```{r CPE2, echo=FALSE, warning=FALSE, message=FALSE, fig.height=6, fig.width=6}
 CM_allmodels <- data.frame(
   Model = c("Lasso", "kNN", "LDA", "RF"),
   Accuracy = c(0.70, 0.76, 0.83, 0.95),
